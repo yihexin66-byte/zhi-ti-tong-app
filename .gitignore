@@ -1,0 +1,16 @@
+# HarmonyOS / DevEco Studio
+/build/
+/entry/build/
+/oh_modules/
+**/oh_modules/
+/.idea/
+**/.idea/
+/.hvigor/
+**/.hvigor/
+*.iml
+local.properties
+.cxx/
+*.har
+/.appanalyzer/
+*.log
+.DS_Store
