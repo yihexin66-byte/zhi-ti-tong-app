@@ -1,2 +1,2 @@
-# zhi-ti-tong-app
-作业测试
+# helloworld
+训练测试
