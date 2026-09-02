@@ -3,6 +3,7 @@
     "pages/Index",
     "pages/LoginPage",
     "pages/ExamDetailPage",
-    "pages/MinePage"
+    "pages/MinePage",
+    "pages/HomePage"
   ]
 }

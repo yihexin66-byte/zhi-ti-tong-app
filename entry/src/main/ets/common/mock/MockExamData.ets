@@ -9,8 +9,23 @@ export const MOCK_PAPER: PaperInfo = {
   totalScore: 100,
   passScore: 60,
   duration: 30,
-  questionCount: 6
+  questionCount: 6,
+  maxAttempts: 3,
+  attemptCount: 1,
+  bestScore: 80
 }
+
+// 多试卷 Mock：覆盖 3 个类别，字段与契约对齐
+export const MOCK_PAPERS: PaperInfo[] = [
+   { id: '1953001000000000001', paperName: 'HarmonyOS 应用开发基础模拟卷（一）', categoryName: '鸿蒙认证', levelName: '基础认证', totalScore: 100, passScore: 60, duration: 30, questionCount: 6, maxAttempts: 3, attemptCount: 1, bestScore: 80 },
+   { id: '1953001000000000002', paperName: 'HarmonyOS 应用开发基础模拟卷（二）', categoryName: '鸿蒙认证', levelName: '基础认证', totalScore: 100, passScore: 60, duration: 30, questionCount: 6, maxAttempts: 3, attemptCount: 0, bestScore: 0 },
+   { id: '1953001000000000003', paperName: 'HarmonyOS 应用开发高级模拟卷（一）', categoryName: '鸿蒙认证', levelName: '高级认证', totalScore: 100, passScore: 70, duration: 45, questionCount: 6, maxAttempts: 2, attemptCount: 0, bestScore: 0 },
+   { id: '1953001000000000004', paperName: 'Java 程序设计期末模拟卷 A', categoryName: 'Java 程序设计', levelName: '期末考试', totalScore: 100, passScore: 60, duration: 60, questionCount: 6, maxAttempts: 3, attemptCount: 2, bestScore: 72 },
+   { id: '1953001000000000005', paperName: 'Java 程序设计期末模拟卷 B', categoryName: 'Java 程序设计', levelName: '期末考试', totalScore: 100, passScore: 60, duration: 60, questionCount: 6, maxAttempts: 3, attemptCount: 0, bestScore: 0 },
+   { id: '1953001000000000006', paperName: '计算机网络单元测验（一）', categoryName: '计算机网络', levelName: '单元测验', totalScore: 100, passScore: 60, duration: 20, questionCount: 6, maxAttempts: 5, attemptCount: 3, bestScore: 95 },
+   { id: '1953001000000000007', paperName: '计算机网络单元测验（二）', categoryName: '计算机网络', levelName: '单元测验', totalScore: 100, passScore: 60, duration: 20, questionCount: 6, maxAttempts: 5, attemptCount: 0, bestScore: 0 },
+   { id: '1953001000000000008', paperName: 'HarmonyOS 应用开发基础模拟卷（三）', categoryName: '鸿蒙认证', levelName: '基础认证', totalScore: 100, passScore: 60, duration: 30, questionCount: 6, maxAttempts: 3, attemptCount: 0, bestScore: 0 }
+]
 
 // Mock 题目：判断题 A=正确 B=错误；单选 4 项；多选 4 项
 export const MOCK_QUESTIONS: QuestionItem[] = [

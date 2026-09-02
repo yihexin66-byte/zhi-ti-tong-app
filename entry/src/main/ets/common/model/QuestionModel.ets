@@ -23,4 +23,8 @@ export interface PaperInfo {
   passScore: number
   duration: number        // 分钟
   questionCount: number
+
+  maxAttempts: number     // 最大可考次数（契约字段）
+  attemptCount: number    // 已考次数（卡片角标用）
+  bestScore: number       // 最好成绩（0 表示未考过）
 }
