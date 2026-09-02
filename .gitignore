@@ -17,3 +17,7 @@ local.properties
 
 # IDE cache
 /.cache/
+
+# IDE tooling
+/.codegenie/
+/.workbuddy/
