@@ -16,7 +16,7 @@ export class CommonConstants {
   static readonly FONT_TITLE: number = 24
   static readonly FONT_SUBTITLE: number = 18
   static readonly FONT_BODY: number = 16
-  static readonly FONT_CAPTION: number = 12
+static readonly FONT_CAPTION: number = 14
   // 尺寸
   static readonly BTN_HEIGHT: number = 50
   static readonly SPACE_M: number = 16
