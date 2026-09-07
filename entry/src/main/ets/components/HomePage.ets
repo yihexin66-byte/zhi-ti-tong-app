@@ -70,9 +70,8 @@ struct PaperCard {
   }
 }
 
-@Entry
 @ComponentV2
-struct HomePage {
+export struct HomePage {
   @Local paperList: PaperInfo[] = getRandomPapers(MOCK_PAPERS, 4)
 
   build() {

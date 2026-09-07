@@ -1,9 +1,9 @@
 {
   "src": [
+    "pages/MainPage",
     "pages/Index",
     "pages/LoginPage",
     "pages/ExamDetailPage",
-    "pages/MinePage",
-    "pages/HomePage"
+    "pages/AnswerResultPage"
   ]
 }

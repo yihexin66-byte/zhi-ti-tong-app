@@ -12,3 +12,29 @@ export function getRandomPapers(papers: PaperInfo[], n: number): PaperInfo[] {
   }
   return n >= pool.length ? pool : pool.slice(0, n)
 }
+
+// 科目聚合结果
+export interface CategoryGroup {
+  categoryName: string
+  count: number
+}
+
+// 按 categoryName 聚合试卷数量（纯函数，不修改入参）
+export function groupByCategory(papers: PaperInfo[]): CategoryGroup[] {
+  const map: Record<string, number> = {}
+  for (let i = 0; i < papers.length; i++) {
+    const name: string = papers[i].categoryName
+    if (map[name] === undefined) {
+      map[name] = 1
+    } else {
+      map[name]++
+    }
+  }
+  const keys: string[] = Object.keys(map)
+  const result: CategoryGroup[] = []
+  for (let i = 0; i < keys.length; i++) {
+    const group: CategoryGroup = { categoryName: keys[i], count: map[keys[i]] }
+    result.push(group)
+  }
+  return result
+}

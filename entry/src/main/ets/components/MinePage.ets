@@ -23,9 +23,8 @@ struct SettingItem {
   }
 }
 
-@Entry
 @ComponentV2
-struct MinePage {
+export struct MinePage {
   build() {
     Column() {
       // ========== 用户信息卡片 ==========

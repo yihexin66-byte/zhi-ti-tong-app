@@ -28,3 +28,21 @@ export interface PaperInfo {
   attemptCount: number    // 已考次数（卡片角标用）
   bestScore: number       // 最好成绩（0 表示未考过）
 }
+
+// 逐题作答结果：与后端交卷接口契约对齐
+export interface AnswerItem {
+  questionId: string
+  correct: boolean     // 该题是否答对
+  answered: boolean    // 是否作答
+}
+
+// 交卷结果：字段与后端交卷接口契约对齐
+export interface ExamResult {
+  score: number        // 得分
+  totalScore: number   // 总分
+  passScore: number    // 及格分
+  passed: boolean      // 是否通过
+  usedTime: number     // 用时（秒）
+  submitType: string   // 交卷方式：MANUAL 手动 / TIMEOUT 超时自动
+  answers: AnswerItem[] // 逐题结果
+}
