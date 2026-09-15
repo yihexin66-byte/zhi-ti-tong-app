@@ -17,6 +17,7 @@ local.properties
 
 # IDE cache
 /.cache/
+**/.preview/
 
 # IDE tooling
 /.codegenie/
