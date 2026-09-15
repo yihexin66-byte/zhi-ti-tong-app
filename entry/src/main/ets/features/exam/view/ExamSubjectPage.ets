@@ -6,7 +6,7 @@
  *   被 MainPage.ets 通过 import 引入，放在 TabContent 中调用。
  *
  * 【架构位置】
- *   components/ 目录 → 无 @Entry，不是路由页面，而是可复用组件
+ *   features/exam/view/ 目录 → 无 @Entry，不是路由页面，而是可复用组件
  *   被 pages/MainPage.ets import 后调用：ExamSubjectPage()
  *
  * 【关键概念】
@@ -19,9 +19,9 @@
  *   ForEach      : 循环渲染
  *   groupByCategory : 工具函数，按 categoryName 聚合试卷数量
  */
-import { CommonConstants } from '../common/constants/CommonConstants'
-import { MOCK_PAPERS } from '../common/mock/MockExamData'
-import { CategoryGroup, groupByCategory } from '../common/utils/PaperUtils'
+import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { MOCK_PAPERS } from '../../../common/mock/MockExamData'
+import { CategoryGroup, groupByCategory } from '../../../common/utils/PaperUtils'
 
 // ===== 科目卡片子组件 =====
 // 作用：展示一个科目的名称和试卷套数

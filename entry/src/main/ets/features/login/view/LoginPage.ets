@@ -1,5 +1,5 @@
 // 登录页面：展示应用Logo、登录表单及注册提示
-import { CommonConstants } from '../common/constants/CommonConstants'
+import { CommonConstants } from '../../../common/constants/CommonConstants'
 
 @Entry
 @ComponentV2

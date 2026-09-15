@@ -1,4 +1,4 @@
-import { PaperInfo, QuestionItem } from '../model/QuestionModel'
+import { PaperInfo, QuestionItem } from '../models/QuestionModel'
 
 // Mock 试卷（字段与契约对齐）
 export const MOCK_PAPER: PaperInfo = {

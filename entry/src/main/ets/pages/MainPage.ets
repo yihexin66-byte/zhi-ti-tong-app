@@ -6,8 +6,8 @@
  *   本身是 @Entry 路由页面，由 EntryAbility 的 loadContent 加载。
  * 
  * 【架构位置】
- *   pages/ 目录 → 有 @Entry，被 main_pages.json 配置为路由页面
- *   components/ 目录 → 无 @Entry，被本文件 import 后作为子组件嵌入 TabContent
+ *   pages/ 目录 → 有 @Entry，被 main_pages.json 配置为路由页面（仅保留 Index 与 MainPage）
+ *   features/<模块>/view/ 目录 → 无 @Entry，被本文件 import 后作为子组件嵌入 TabContent
  * 
  * 【关键概念】
  *   @Entry       : 标记此 struct 为路由页面入口，系统通过它找到页面
@@ -17,9 +17,9 @@
  *   Tabs/TabContent : 标签页容器，TabContent 是每页的内容，.tabBar 是标签
  */
 import { CommonConstants } from '../common/constants/CommonConstants'
-import { HomePage } from '../components/HomePage'           // 首页组件
-import { ExamSubjectPage } from '../components/ExamSubjectPage' // 刷题组件
-import { MinePage } from '../components/MinePage'           // 我的组件
+import { HomePage } from '../features/home/view/HomePage'           // 首页组件
+import { ExamSubjectPage } from '../features/exam/view/ExamSubjectPage' // 刷题组件
+import { MinePage } from '../features/mine/view/MinePage'           // 我的组件
 
 // ===== 路由入口 =====
 // @Entry 告诉系统：这个 struct 是一个页面，可以通过路由加载
@@ -63,7 +63,7 @@ struct MainPage {
     Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
       // ===== 第1页：首页 =====
       TabContent() {
-        HomePage()     // 调用 HomePage 组件（从 components/ 导入）
+        HomePage()     // 调用 HomePage 组件（从 features/home/view/ 导入）
       }
       .tabBar(this.tabBarItem('首页', 0))   // 标签文字"首页"，序号0
 

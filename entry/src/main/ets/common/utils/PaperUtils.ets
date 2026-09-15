@@ -1,4 +1,4 @@
-import { PaperInfo } from '../model/QuestionModel'
+import { PaperInfo } from '../models/QuestionModel'
 
 // 从试卷数组中随机抽取 n 张（Fisher-Yates 洗牌后取前 n 张）
 // 约定：不修改原数组；n 大于等于总数时返回全部试卷的副本

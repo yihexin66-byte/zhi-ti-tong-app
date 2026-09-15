@@ -1,4 +1,4 @@
-import { ExamResult } from '../model/QuestionModel'
+import { ExamResult } from '../models/QuestionModel'
 
 // Mock 交卷结果：与 MOCK_PAPER / MOCK_QUESTIONS 六道题对应
 // 覆盖三种状态：4 对（101/102/104/105）、1 错（103）、1 未答（106）

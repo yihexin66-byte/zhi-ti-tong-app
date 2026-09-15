@@ -1,8 +1,8 @@
 // 答题结果页：结果卡 + 证书提示条 + 答题卡 + 底部按钮组
-import { CommonConstants } from '../common/constants/CommonConstants'
-import { AnswerItem, ExamResult } from '../common/model/QuestionModel'
-import { MOCK_RESULT } from '../common/mock/MockResultData'
-import { formatDuration } from '../common/utils/TimeUtils'
+import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { AnswerItem, ExamResult } from '../../../common/models/QuestionModel'
+import { MOCK_RESULT } from '../../../common/mock/MockResultData'
+import { formatDuration } from '../../../common/utils/TimeUtils'
 
 // 本页专用字号：大号得分 48、说明行 12（任务指定，常量库暂无对应档位）
 const FONT_SCORE: number = 48

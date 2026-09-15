@@ -6,7 +6,7 @@
  *   被 MainPage.ets 通过 import 引入，放在 TabContent 中调用。
  *
  * 【架构位置】
- *   components/ 目录 → 无 @Entry，不是路由页面，而是可复用组件
+ *   features/home/view/ 目录 → 无 @Entry，不是路由页面，而是可复用组件
  *   被 pages/MainPage.ets import 后调用：HomePage()
  *
  * 【关键概念】
@@ -19,10 +19,10 @@
  *   ForEach      : 循环渲染，遍历数组为每个元素生成 UI
  *   $r()         : 引用资源文件（图片等），路径来自 resources 目录
  */
-import { CommonConstants } from '../common/constants/CommonConstants'
-import { PaperInfo } from '../common/model/QuestionModel'
-import { MOCK_PAPERS } from '../common/mock/MockExamData'
-import { getRandomPapers } from '../common/utils/PaperUtils'
+import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { PaperInfo } from '../../../common/models/QuestionModel'
+import { MOCK_PAPERS } from '../../../common/mock/MockExamData'
+import { getRandomPapers } from '../../../common/utils/PaperUtils'
 
 // ===== 试卷卡片子组件 =====
 // 作用：展示一张试卷的卡片（试卷名、等级标签、题目数、成绩角标）

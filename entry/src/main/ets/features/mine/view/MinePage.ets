@@ -6,7 +6,7 @@
  *   被 MainPage.ets 通过 import 引入，放在 TabContent 中调用。
  *
  * 【架构位置】
- *   components/ 目录 → 无 @Entry，不是路由页面，而是可复用组件
+ *   features/mine/view/ 目录 → 无 @Entry，不是路由页面，而是可复用组件
  *   被 pages/MainPage.ets import 后调用：MinePage()
  *
  * 【关键概念】
@@ -17,7 +17,7 @@
  *   Button       : 按钮组件
  *   Image($r())  : 加载资源图片
  */
-import { CommonConstants } from '../common/constants/CommonConstants'
+import { CommonConstants } from '../../../common/constants/CommonConstants'
 
 // ===== 设置条目子组件 =====
 // 作用：渲染一行设置项，左边是标题，右边是箭头 >

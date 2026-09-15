@@ -1,7 +1,7 @@
 // 考试模式答题页：展示试卷信息、题目内容及选项，支持上下题切换
-import { CommonConstants } from '../common/constants/CommonConstants'
-import { MOCK_PAPER, MOCK_QUESTIONS } from '../common/mock/MockExamData'
-import { OptionItem } from '../common/model/QuestionModel'
+import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { MOCK_PAPER, MOCK_QUESTIONS } from '../../../common/mock/MockExamData'
+import { OptionItem } from '../../../common/models/QuestionModel'
 
 @Entry
 @ComponentV2
