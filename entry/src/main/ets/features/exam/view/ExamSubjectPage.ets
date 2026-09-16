@@ -20,6 +20,7 @@
  *   groupByCategory : 工具函数，按 categoryName 聚合试卷数量
  */
 import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { RouteConstants } from '../../../common/constants/RouteConstants'
 import { MOCK_PAPERS } from '../../../common/mock/MockExamData'
 import { CategoryGroup, groupByCategory } from '../../../common/utils/PaperUtils'
 
@@ -27,9 +28,9 @@ import { CategoryGroup, groupByCategory } from '../../../common/utils/PaperUtils
 // 作用：展示一个科目的名称和试卷套数
 // 注意：没有 export，只能在 ExamSubjectPage.ets 内部使用
 @ComponentV2
-struct ExamSubjectCard {
-  // @Param：父组件传入的科目分组数据
-  @Param group: CategoryGroup = { categoryName: '', count: 0 }
+export struct ExamSubjectCard {
+  @Param @Require group: CategoryGroup
+  @Consumer('examStack') examStack: NavPathStack = new NavPathStack()
 
   build() {
     // 卡片：垂直居中，显示科目名 + 套数
@@ -53,9 +54,27 @@ struct ExamSubjectCard {
     .alignItems(HorizontalAlign.Center)                    // 水平居中
     .justifyContent(FlexAlign.Center)                      // 垂直居中
     .onClick(() => {
-      // 点击科目卡片事件（暂时只打印日志，后续跳转到该科目的试卷列表）
-      console.info(this.group.categoryName)
+      // 域内跳转：push 到 examStack，底部 Tab 仍然可见——对比首页卡片的根栈跳转
+      this.examStack.pushPathByName(RouteConstants.EXAM_LIST, this.group.categoryName)
     })
+  }
+}
+
+// 考卷列表占位页：实训 4-3 将替换为真正的 ExamListPage
+@ComponentV2
+struct ExamListPlaceholder {
+  build() {
+    NavDestination() {
+      Column() {
+        Text('考卷列表页（实训 4-3 建设中）')
+          .fontSize(CommonConstants.FONT_BODY)
+          .fontColor(CommonConstants.COLOR_TEXT_SUB)
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+    }
+    .title('考卷列表')
   }
 }
 
@@ -63,40 +82,52 @@ struct ExamSubjectCard {
 // export 是必须的！没有它 MainPage 就 import 不到
 @ComponentV2
 export struct ExamSubjectPage {
-  // @Local：组件内部状态
-  // 调用 groupByCategory 工具函数，从 Mock 数据中聚合科目列表
-  // 比如：{ categoryName: '数学', count: 3 }, { categoryName: '英语', count: 2 }
-  @Local categoryList: CategoryGroup[] = groupByCategory(MOCK_PAPERS)
+  // 三级导航：Exam 域自持子栈
+  @Provider('examStack') examStack: NavPathStack = new NavPathStack()
+  @Local categories: CategoryGroup[] = groupByCategory(MOCK_PAPERS)
+
+  // Exam 域内路由注册
+  @Builder
+  ExamRouter(name: string, param: Object) {
+    if (name === RouteConstants.EXAM_LIST) {
+      ExamListPlaceholder()
+    }
+  }
 
   build() {
-    Column() {
-      // ===== 顶部标题 =====
-      Text('考试科目')
-        .fontSize(CommonConstants.FONT_SUBTITLE)           // 字号 18
-        .fontWeight(FontWeight.Bold)                        // 加粗
-        .fontColor(CommonConstants.COLOR_TEXT_MAIN)
-        .width('100%')
+    Navigation(this.examStack) {
+      Column() {
+        // ===== 顶部标题 =====
+        Text('考试科目')
+          .fontSize(CommonConstants.FONT_SUBTITLE)           // 字号 18
+          .fontWeight(FontWeight.Bold)                        // 加粗
+          .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+          .width('100%')
 
-      // ===== 科目网格 =====
-      // Grid 网格布局，columnsTemplate 定义列数及比例
-      // '1fr 1fr' 表示两列等宽（fr = fraction，等分剩余空间）
-      Grid() {
-        // ForEach 遍历科目列表，每个科目生成一个 GridItem 卡片
-        ForEach(this.categoryList, (group: CategoryGroup) => {
-          GridItem() {
-            ExamSubjectCard({ group: group })              // 向子组件传入 group 参数
-          }
-        }, (group: CategoryGroup) => group.categoryName)   // 用科目名做 key
+        // ===== 科目网格 =====
+        // Grid 网格布局，columnsTemplate 定义列数及比例
+        // '1fr 1fr' 表示两列等宽（fr = fraction，等分剩余空间）
+        Grid() {
+          // ForEach 遍历科目列表，每个科目生成一个 GridItem 卡片
+          ForEach(this.categories, (group: CategoryGroup) => {
+            GridItem() {
+              ExamSubjectCard({ group: group })              // 向子组件传入 group 参数
+            }
+          }, (group: CategoryGroup) => group.categoryName)   // 用科目名做 key
+        }
+        .columnsTemplate('1fr 1fr')                          // 两列等宽
+        .rowsGap(CommonConstants.SPACE_M)                    // 行间距 16
+        .columnsGap(CommonConstants.SPACE_M)                 // 列间距 16
+        .width('100%')
+        .margin({ top: CommonConstants.SPACE_L })            // 与标题间距 24
       }
-      .columnsTemplate('1fr 1fr')                          // 两列等宽
-      .rowsGap(CommonConstants.SPACE_M)                    // 行间距 16
-      .columnsGap(CommonConstants.SPACE_M)                 // 列间距 16
       .width('100%')
-      .margin({ top: CommonConstants.SPACE_L })            // 与标题间距 24
+      .height('100%')
+      .backgroundColor(CommonConstants.COLOR_BG_PAGE)         // 页面背景 #F5F6FA
+      .padding(CommonConstants.SPACE_M)                       // 整体内边距 16
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(CommonConstants.COLOR_BG_PAGE)         // 页面背景 #F5F6FA
-    .padding(CommonConstants.SPACE_M)                       // 整体内边距 16
+    .navDestination(this.ExamRouter)
+    .hideTitleBar(true)
+    .mode(NavigationMode.Stack)
   }
 }

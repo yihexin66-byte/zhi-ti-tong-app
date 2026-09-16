@@ -51,73 +51,88 @@ struct SettingItem {
 // export 是必须的！没有它 MainPage 就 import 不到
 @ComponentV2
 export struct MinePage {
-  build() {
-    // 整个页面用 Column 纵向排列
-    Column() {
-      // ===== 用户信息卡片 =====
-      // Row 横向：左侧头像 + 右侧用户名/签名
-      Row() {
-        // 左侧：头像（圆形）
-        Image($r('app.media.ic_app'))                    // 引用应用图标
-          .width(60)
-          .height(60)
-          .borderRadius(30)                              // 圆角 30 → 圆形
-          .objectFit(ImageFit.Cover)                     // 裁剪铺满
+  // 三级导航：Mine 域自持子栈（预留）
+    @Provider('mineStack') mineStack: NavPathStack = new NavPathStack()
+    // 登出要操作根栈
+    @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
 
-        // 右侧：用户名 + 个性签名
-        Column() {
-          Text('用户名')
-            .fontSize(CommonConstants.FONT_SUBTITLE)     // 字号 18
-            .fontColor(CommonConstants.COLOR_TEXT_MAIN)
-            .fontWeight(FontWeight.Bold)                 // 加粗
-
-          Text('个性签名')
-            .fontSize(CommonConstants.FONT_CAPTION)      // 字号 14
-            .fontColor(CommonConstants.COLOR_TEXT_SUB)   // 次文本色 #666
-            .margin({ top: CommonConstants.SPACE_M })    // 与用户名间距 16
-        }
-        .alignItems(HorizontalAlign.Start)               // 左对齐
-        .margin({ left: CommonConstants.SPACE_M })       // 与头像间距 16
-      }
-      .width('100%')
-      .backgroundColor(Color.White)                      // 白底卡片
-      .borderRadius(12)                                  // 圆角
-      .padding(CommonConstants.SPACE_M)                  // 内边距 16
-      .alignItems(VerticalAlign.Center)                  // 垂直居中
-
-      // ===== 设置功能列表 =====
-      Column() {
-        // 调用 SettingItem 子组件，传入不同标题
-        // 每个条目一行，点击后跳转到对应功能页（后续实现）
-        SettingItem({ title: '我的收藏' })
-        SettingItem({ title: '做题记录' })
-        SettingItem({ title: '错题本' })
-        SettingItem({ title: '关于我们' })
-      }
-      .width('100%')
-      .backgroundColor(Color.White)
-      .borderRadius(12)
-      .padding(CommonConstants.SPACE_M)
-      .margin({ top: CommonConstants.SPACE_L })          // 与用户卡片间距 24
-
-      // ===== 弹性空白 =====
-      // Blank() 占满剩余空间，把退出按钮推到屏幕底部
-      Blank()
-
-      // ===== 退出登录按钮 =====
-      Button('退出登录')
-        .width('80%')
-        .backgroundColor(Color.White)                     // 白底
-        .fontColor(CommonConstants.COLOR_ERROR)           // 红色字 #F44336
-        .fontSize(CommonConstants.FONT_BODY)
-        .onClick(() => {
-          // 退出登录事件（暂时只打印日志，后续接入真实登录逻辑）
-          console.info('退出登录')
-        })
+    // Mine 域内路由注册（预留）
+    @Builder
+    MineRouter(name: string, param: Object) {
     }
-    .width('100%')
-    .height('100%')                                       // 占满全屏
-    .backgroundColor(CommonConstants.COLOR_BG_PAGE)        // 页面背景 #F5F6FA
-    .padding(CommonConstants.SPACE_M)                      // 整体内边距 16
+
+    build() {
+      Navigation(this.mineStack) {
+        // 整个页面用 Column 纵向排列
+        Column() {
+        // ===== 用户信息卡片 =====
+        // Row 横向：左侧头像 + 右侧用户名/签名
+        Row() {
+          // 左侧：头像（圆形）
+          Image($r('app.media.ic_app'))                    // 引用应用图标
+            .width(60)
+            .height(60)
+            .borderRadius(30)                              // 圆角 30 → 圆形
+            .objectFit(ImageFit.Cover)                     // 裁剪铺满
+
+          // 右侧：用户名 + 个性签名
+          Column() {
+            Text('用户名')
+              .fontSize(CommonConstants.FONT_SUBTITLE)     // 字号 18
+              .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+              .fontWeight(FontWeight.Bold)                 // 加粗
+
+            Text('个性签名')
+              .fontSize(CommonConstants.FONT_CAPTION)      // 字号 14
+              .fontColor(CommonConstants.COLOR_TEXT_SUB)   // 次文本色 #666
+              .margin({ top: CommonConstants.SPACE_M })    // 与用户名间距 16
+          }
+          .alignItems(HorizontalAlign.Start)               // 左对齐
+          .margin({ left: CommonConstants.SPACE_M })       // 与头像间距 16
+        }
+        .width('100%')
+        .backgroundColor(Color.White)                      // 白底卡片
+        .borderRadius(12)                                  // 圆角
+        .padding(CommonConstants.SPACE_M)                  // 内边距 16
+        .alignItems(VerticalAlign.Center)                  // 垂直居中
+
+        // ===== 设置功能列表 =====
+        Column() {
+          // 调用 SettingItem 子组件，传入不同标题
+          // 每个条目一行，点击后跳转到对应功能页（后续实现）
+          SettingItem({ title: '我的收藏' })
+          SettingItem({ title: '做题记录' })
+          SettingItem({ title: '错题本' })
+          SettingItem({ title: '关于我们' })
+        }
+        .width('100%')
+        .backgroundColor(Color.White)
+        .borderRadius(12)
+        .padding(CommonConstants.SPACE_M)
+        .margin({ top: CommonConstants.SPACE_L })          // 与用户卡片间距 24
+
+        // ===== 弹性空白 =====
+        // Blank() 占满剩余空间，把退出按钮推到屏幕底部
+        Blank()
+
+        // ===== 退出登录按钮 =====
+        Button('退出登录')
+          .width('80%')
+          .backgroundColor(Color.White)                     // 白底
+          .fontColor(CommonConstants.COLOR_ERROR)           // 红色字 #F44336
+          .fontSize(CommonConstants.FONT_BODY)
+          .onClick(() => {
+            // 清空根栈：栈空后显示 Navigation 的内容页，即登录页——登出闭环
+            this.pageStack.clear()
+          })
+        }
+      .width('100%')
+      .height('100%')                                       // 占满全屏
+      .backgroundColor(CommonConstants.COLOR_BG_PAGE)        // 页面背景 #F5F6FA
+      .padding(CommonConstants.SPACE_M)                      // 整体内边距 16
+    }
+    .navDestination(this.MineRouter)
+    .hideTitleBar(true)
+    .mode(NavigationMode.Stack)
   }
 }

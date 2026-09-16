@@ -40,118 +40,122 @@ struct AnswerCell {
   }
 }
 
-@Entry
 @ComponentV2
-struct AnswerResultPage {
+export struct AnswerResultPage {
+  @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
   // 项目 6 前用 Mock 数据，接入真实接口时只换数据源
   @Local result: ExamResult = MOCK_RESULT
 
   build() {
-    Column() {
-      // ========== 上方内容区（占满剩余空间，把按钮压到底部） ==========
-      Column({ space: CommonConstants.SPACE_L }) {
-        // ----- 结果卡：得分 + 通过标签 + 及格线/用时/交卷方式 -----
-        Column() {
-          Text(`${this.result.score}`)
-            .fontSize(FONT_SCORE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.result.passed ? CommonConstants.COLOR_SUCCESS : CommonConstants.COLOR_ERROR)
+    NavDestination() {
+      Column() {
+        // ========== 上方内容区（占满剩余空间，把按钮压到底部） ==========
+        Column({ space: CommonConstants.SPACE_L }) {
+          // ----- 结果卡：得分 + 通过标签 + 及格线/用时/交卷方式 -----
+          Column() {
+            Text(`${this.result.score}`)
+              .fontSize(FONT_SCORE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(this.result.passed ? CommonConstants.COLOR_SUCCESS : CommonConstants.COLOR_ERROR)
 
-          Text(this.result.passed ? '通过' : '未通过')
-            .fontSize(CommonConstants.FONT_CAPTION)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.result.passed ? CommonConstants.COLOR_SUCCESS : CommonConstants.COLOR_ERROR)
-            .borderWidth(1)
-            .borderColor(this.result.passed ? CommonConstants.COLOR_SUCCESS : CommonConstants.COLOR_ERROR)
-            .borderRadius(4)
-            .borderStyle(BorderStyle.Solid)
-            .padding({ left: 10, right: 10, top: 2, bottom: 2 })
-            .margin({ top: CommonConstants.SPACE_M })
+            Text(this.result.passed ? '通过' : '未通过')
+              .fontSize(CommonConstants.FONT_CAPTION)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(this.result.passed ? CommonConstants.COLOR_SUCCESS : CommonConstants.COLOR_ERROR)
+              .borderWidth(1)
+              .borderColor(this.result.passed ? CommonConstants.COLOR_SUCCESS : CommonConstants.COLOR_ERROR)
+              .borderRadius(4)
+              .borderStyle(BorderStyle.Solid)
+              .padding({ left: 10, right: 10, top: 2, bottom: 2 })
+              .margin({ top: CommonConstants.SPACE_M })
 
-          Text(`及格线 ${this.result.passScore} 分 · 用时 ${formatDuration(this.result.usedTime)} · ${submitTypeText(this.result.submitType)}`)
-            .fontSize(FONT_SMALL)
-            .fontColor(CommonConstants.COLOR_TEXT_SUB)
-            .margin({ top: CommonConstants.SPACE_M })
-        }
-        .width('100%')
-        .backgroundColor(Color.White)
-        .borderRadius(12)
-        .padding(CommonConstants.SPACE_L)
-        .alignItems(HorizontalAlign.Center)
-
-        // ----- 证书提示条：仅通过时显示（静态占位） -----
-        if (this.result.passed) {
-          Text('✅ 已生成电子证书，可在个人中心查看')
-            .fontSize(CommonConstants.FONT_CAPTION)
-            .fontColor(CommonConstants.COLOR_SUCCESS)
-            .textAlign(TextAlign.Center)
-            .width('100%')
-            .backgroundColor(CommonConstants.COLOR_BG_PAGE)
-            .borderRadius(8)
-            .padding(CommonConstants.SPACE_M)
-        }
-
-        // ----- 答题卡区：标题 + 六列格子 -----
-        Column({ space: CommonConstants.SPACE_M }) {
-          Text('答题卡')
-            .fontSize(CommonConstants.FONT_SUBTITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(CommonConstants.COLOR_TEXT_MAIN)
-            .width('100%')
-
-          // 六列一行，格子高度固定（单行展示，无需滚动）
-          Grid() {
-            ForEach(this.result.answers, (answer: AnswerItem, index: number) => {
-              GridItem() {
-                AnswerCell({ index: index, answer: answer })
-              }
-            }, (answer: AnswerItem) => answer.questionId)
+            Text(`及格线 ${this.result.passScore} 分 · 用时 ${formatDuration(this.result.usedTime)} · ${submitTypeText(this.result.submitType)}`)
+              .fontSize(FONT_SMALL)
+              .fontColor(CommonConstants.COLOR_TEXT_SUB)
+              .margin({ top: CommonConstants.SPACE_M })
           }
-          .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr')
           .width('100%')
-          .height(44)
+          .backgroundColor(Color.White)
+          .borderRadius(12)
+          .padding(CommonConstants.SPACE_L)
+          .alignItems(HorizontalAlign.Center)
+
+          // ----- 证书提示条：仅通过时显示（静态占位） -----
+          if (this.result.passed) {
+            Text('✅ 已生成电子证书，可在个人中心查看')
+              .fontSize(CommonConstants.FONT_CAPTION)
+              .fontColor(CommonConstants.COLOR_SUCCESS)
+              .textAlign(TextAlign.Center)
+              .width('100%')
+              .backgroundColor(CommonConstants.COLOR_BG_PAGE)
+              .borderRadius(8)
+              .padding(CommonConstants.SPACE_M)
+          }
+
+          // ----- 答题卡区：标题 + 六列格子 -----
+          Column({ space: CommonConstants.SPACE_M }) {
+            Text('答题卡')
+              .fontSize(CommonConstants.FONT_SUBTITLE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+              .width('100%')
+
+            // 六列一行，格子高度固定（单行展示，无需滚动）
+            Grid() {
+              ForEach(this.result.answers, (answer: AnswerItem, index: number) => {
+                GridItem() {
+                  AnswerCell({ index: index, answer: answer })
+                }
+              }, (answer: AnswerItem) => answer.questionId)
+            }
+            .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr')
+            .width('100%')
+            .height(44)
+          }
+          .width('100%')
+          .backgroundColor(Color.White)
+          .borderRadius(12)
+          .padding(CommonConstants.SPACE_M)
         }
         .width('100%')
-        .backgroundColor(Color.White)
-        .borderRadius(12)
-        .padding(CommonConstants.SPACE_M)
+        .layoutWeight(1)
+
+        // ========== 底部按钮组行 ==========
+        Row({ space: CommonConstants.SPACE_M }) {
+          // 查看回顾：白底主色字
+          Button('查看回顾')
+            .type(ButtonType.Normal)
+            .layoutWeight(1)
+            .height(CommonConstants.BTN_HEIGHT)
+            .backgroundColor(Color.White)
+            .fontColor(CommonConstants.COLOR_PRIMARY)
+            .fontSize(CommonConstants.FONT_BODY)
+            .onClick(() => {
+              console.info('查看回顾')
+            })
+
+          // 重新刷题：渐变主按钮
+          Button('重新刷题')
+            .layoutWeight(1)
+            .height(CommonConstants.BTN_HEIGHT)
+            .fontSize(CommonConstants.FONT_BODY)
+            .fontColor(Color.White)
+            .linearGradient({
+              direction: GradientDirection.Right,
+              colors: [[CommonConstants.GRADIENT_START, 0], [CommonConstants.GRADIENT_END, 1]]
+            })
+            .onClick(() => {
+              // 弹出结果页，回到答题页重新作答（按记录跳转的完整逻辑项目 6 接入数据后实现）
+              this.pageStack.pop()
+            })
+        }
+        .width('100%')
       }
       .width('100%')
-      .layoutWeight(1)
-
-      // ========== 底部按钮组行 ==========
-      Row({ space: CommonConstants.SPACE_M }) {
-        // 查看回顾：白底主色字
-        Button('查看回顾')
-          .type(ButtonType.Normal)
-          .layoutWeight(1)
-          .height(CommonConstants.BTN_HEIGHT)
-          .backgroundColor(Color.White)
-          .fontColor(CommonConstants.COLOR_PRIMARY)
-          .fontSize(CommonConstants.FONT_BODY)
-          .onClick(() => {
-            console.info('查看回顾')
-          })
-
-        // 重新刷题：渐变主按钮
-        Button('重新刷题')
-          .layoutWeight(1)
-          .height(CommonConstants.BTN_HEIGHT)
-          .fontSize(CommonConstants.FONT_BODY)
-          .fontColor(Color.White)
-          .linearGradient({
-            direction: GradientDirection.Right,
-            colors: [[CommonConstants.GRADIENT_START, 0], [CommonConstants.GRADIENT_END, 1]]
-          })
-          .onClick(() => {
-            console.info('重新刷题')
-          })
-      }
-      .width('100%')
+      .height('100%')
+      .backgroundColor(CommonConstants.COLOR_BG_PAGE)
+      .padding(CommonConstants.SPACE_M)
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(CommonConstants.COLOR_BG_PAGE)
-    .padding(CommonConstants.SPACE_M)
+    .hideTitleBar(true)
   }
 }

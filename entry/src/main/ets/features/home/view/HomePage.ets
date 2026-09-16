@@ -20,6 +20,7 @@
  *   $r()         : 引用资源文件（图片等），路径来自 resources 目录
  */
 import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { RouteConstants } from '../../../common/constants/RouteConstants'
 import { PaperInfo } from '../../../common/models/QuestionModel'
 import { MOCK_PAPERS } from '../../../common/mock/MockExamData'
 import { getRandomPapers } from '../../../common/utils/PaperUtils'
@@ -29,14 +30,9 @@ import { getRandomPapers } from '../../../common/utils/PaperUtils'
 // 注意：没有 export，所以只能在 HomePage.ets 内部使用
 @ComponentV2
 struct PaperCard {
-  // @Param：父组件传入的参数
-  // 这里接收一个 PaperInfo 对象，包含试卷的所有信息
-  // 后面的 = {...} 是默认值，防止父组件没传参时报错
-  @Param paper: PaperInfo = {
-    id: '', paperName: '', categoryName: '', levelName: '',
-    totalScore: 0, passScore: 0, duration: 0, questionCount: 0,
-    maxAttempts: 0, attemptCount: 0, bestScore: 0
-  }
+  @Param @Require paper: PaperInfo
+  // 跨层级直取根栈：无论嵌套多深，@Consumer 都能拿到 AppNavigation 提供的 pageStack
+  @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
 
   build() {
     // 整张卡片用 Row 横向布局
@@ -97,8 +93,8 @@ struct PaperCard {
     .padding(CommonConstants.SPACE_M)                       // 内边距 16
     .alignItems(VerticalAlign.Center)                       // 垂直居中
     .onClick(() => {
-      // 点击卡片事件（暂时只打印日志，后续接入真实跳转）
-      console.info(this.paper.paperName)
+      // 沉浸式详情：push 到根栈，盖住底部 Tab
+      this.pageStack.pushPathByName(RouteConstants.EXAM_DETAIL, this.paper.id)
     })
   }
 }
@@ -107,63 +103,72 @@ struct PaperCard {
 // export 是必须的！没有它 MainPage 就 import 不到
 @ComponentV2
 export struct HomePage {
-  // @Local：组件内部状态
-  // 从 Mock 数据中随机抽取 4 张试卷，作为推荐列表
-  // getRandomPapers 是工具函数，使用 Fisher-Yates 洗牌算法随机取
-  @Local paperList: PaperInfo[] = getRandomPapers(MOCK_PAPERS, 4)
+  // 三级导航：Home 域自持子栈（本章 Home 域详情走根栈，子栈预留）
+  @Provider('homeStack') homeStack: NavPathStack = new NavPathStack()
+  @Local recommendPapers: PaperInfo[] = getRandomPapers(MOCK_PAPERS, 4)
+
+  // Home 域内路由注册（预留）
+  @Builder
+  HomeRouter(name: string, param: Object) {
+  }
 
   build() {
-    // Scroll 包裹整个内容，列表超出屏幕高度时可以上下滚动
-    Scroll() {
-      // 纵向排列：轮播区在上，推荐试卷区在下
-      Column({ space: CommonConstants.SPACE_L }) {          // 间距 24
-        // ===== 顶部轮播区 =====
-        // Swiper 轮播组件：自动播放多张图片
-        Swiper() {
-          // $r('app.media.banner1') 引用 resources/base/media 下的图片
-          Image($r('app.media.banner1'))
-            .width('100%')
-            .height(160)
-            .objectFit(ImageFit.Cover)                      // 裁剪铺满
-          Image($r('app.media.banner2'))
-            .width('100%')
-            .height(160)
-            .objectFit(ImageFit.Cover)
-          Image($r('app.media.banner3'))
-            .width('100%')
-            .height(160)
-            .objectFit(ImageFit.Cover)
-        }
-        .autoPlay(true)                                      // 自动播放
-        .interval(3000)                                      // 3秒切换一次
-        .indicator(true)                                     // 显示底部小圆点
-        .height(160)
-        .borderRadius(12)                                    // 圆角
-        .clip(true)                                          // 裁剪超出圆角的部分
+    Navigation(this.homeStack) {
+      // Scroll 包裹整个内容，列表超出屏幕高度时可以上下滚动
+      Scroll() {
+        // 纵向排列：轮播区在上，推荐试卷区在下
+        Column({ space: CommonConstants.SPACE_L }) {          // 间距 24
+          // ===== 顶部轮播区 =====
+          // Swiper 轮播组件：自动播放多张图片
+          Swiper() {
+            // $r('app.media.banner1') 引用 resources/base/media 下的图片
+            Image($r('app.media.banner1'))
+              .width('100%')
+              .height(160)
+              .objectFit(ImageFit.Cover)                      // 裁剪铺满
+            Image($r('app.media.banner2'))
+              .width('100%')
+              .height(160)
+              .objectFit(ImageFit.Cover)
+            Image($r('app.media.banner3'))
+              .width('100%')
+              .height(160)
+              .objectFit(ImageFit.Cover)
+          }
+          .autoPlay(true)                                      // 自动播放
+          .interval(3000)                                      // 3秒切换一次
+          .indicator(true)                                     // 显示底部小圆点
+          .height(160)
+          .borderRadius(12)                                    // 圆角
+          .clip(true)                                          // 裁剪超出圆角的部分
 
-        // ===== 推荐试卷区 =====
-        Column({ space: CommonConstants.SPACE_M }) {          // 间距 16
-          Text('推荐试卷')
-            .fontSize(CommonConstants.FONT_SUBTITLE)         // 字号 18
-            .fontWeight(FontWeight.Bold)
-            .fontColor(CommonConstants.COLOR_TEXT_MAIN)
-            .width('100%')
+          // ===== 推荐试卷区 =====
+          Column({ space: CommonConstants.SPACE_M }) {          // 间距 16
+            Text('推荐试卷')
+              .fontSize(CommonConstants.FONT_SUBTITLE)         // 字号 18
+              .fontWeight(FontWeight.Bold)
+              .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+              .width('100%')
 
-          // ForEach 循环渲染：遍历 paperList 数组，为每张试卷创建一个 PaperCard
-          // 第一个参数：要遍历的数组
-          // 第二个参数：对每个元素执行的回调，返回 UI
-          // 第三个参数：key 生成函数，用于 diff 优化，这里用试卷 id
-          ForEach(this.paperList, (paper: PaperInfo) => {
-            PaperCard({ paper: paper })                     // 向子组件传入 paper 参数
-          }, (paper: PaperInfo) => paper.id)
+            // ForEach 循环渲染：遍历 recommendPapers 数组，为每张试卷创建一个 PaperCard
+            // 第一个参数：要遍历的数组
+            // 第二个参数：对每个元素执行的回调，返回 UI
+            // 第三个参数：key 生成函数，用于 diff 优化，这里用试卷 id
+            ForEach(this.recommendPapers, (paper: PaperInfo) => {
+              PaperCard({ paper: paper })                     // 向子组件传入 paper 参数
+            }, (paper: PaperInfo) => paper.id)
+          }
+          .width('100%')
         }
         .width('100%')
       }
       .width('100%')
+      .height('100%')
+      .backgroundColor(CommonConstants.COLOR_BG_PAGE)          // 页面背景色 #F5F6FA
+      .padding(CommonConstants.SPACE_M)                        // 整体内边距 16
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(CommonConstants.COLOR_BG_PAGE)          // 页面背景色 #F5F6FA
-    .padding(CommonConstants.SPACE_M)                        // 整体内边距 16
+    .navDestination(this.HomeRouter)
+    .hideTitleBar(true)
+    .mode(NavigationMode.Stack)
   }
 }
