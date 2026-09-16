@@ -148,9 +148,9 @@ export struct AnswerResultPage {
               // 弹出结果页，回到答题页重新作答（按记录跳转的完整逻辑项目 6 接入数据后实现）
               this.pageStack.pop()
             })
+          }
+          .width('100%')
         }
-        .width('100%')
-      }
       .width('100%')
       .height('100%')
       .backgroundColor(CommonConstants.COLOR_BG_PAGE)
