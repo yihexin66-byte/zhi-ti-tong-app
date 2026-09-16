@@ -23,6 +23,7 @@ import { CommonConstants } from '../../../common/constants/CommonConstants'
 import { RouteConstants } from '../../../common/constants/RouteConstants'
 import { MOCK_PAPERS } from '../../../common/mock/MockExamData'
 import { CategoryGroup, groupByCategory } from '../../../common/utils/PaperUtils'
+import { ExamListPage } from './ExamListPage'
 
 // ===== 科目卡片子组件 =====
 // 作用：展示一个科目的名称和试卷套数
@@ -60,24 +61,6 @@ export struct ExamSubjectCard {
   }
 }
 
-// 考卷列表占位页：实训 4-3 将替换为真正的 ExamListPage
-@ComponentV2
-struct ExamListPlaceholder {
-  build() {
-    NavDestination() {
-      Column() {
-        Text('考卷列表页（实训 4-3 建设中）')
-          .fontSize(CommonConstants.FONT_BODY)
-          .fontColor(CommonConstants.COLOR_TEXT_SUB)
-      }
-      .width('100%')
-      .height('100%')
-      .justifyContent(FlexAlign.Center)
-    }
-    .title('考卷列表')
-  }
-}
-
 // ===== 考试科目页主组件（导出给外部使用）=====
 // export 是必须的！没有它 MainPage 就 import 不到
 @ComponentV2
@@ -90,7 +73,7 @@ export struct ExamSubjectPage {
   @Builder
   ExamRouter(name: string, param: Object) {
     if (name === RouteConstants.EXAM_LIST) {
-      ExamListPlaceholder()
+      ExamListPage()
     }
   }
 
