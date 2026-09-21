@@ -38,3 +38,12 @@ export function groupByCategory(papers: PaperInfo[]): CategoryGroup[] {
   }
   return result
 }
+
+// 按科目名过滤试卷（纯函数，不修改入参）
+// 约定：categoryName 为空字符串时返回空数组，由调用方决定空态展示
+export function filterByCategory(papers: PaperInfo[], categoryName: string): PaperInfo[] {
+  if (categoryName === '') {
+    return []
+  }
+  return papers.filter((paper: PaperInfo) => paper.categoryName === categoryName)
+}

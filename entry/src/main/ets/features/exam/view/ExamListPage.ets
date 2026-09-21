@@ -1,27 +1,28 @@
 /**
- * ExamListPage — 考卷列表页（Exam 域内路由页面）
+ * ExamListPage — 考卷列表页（Exam 域内路由页面，View 层）
  *
  * 【作用】
- *   接收科目页传入的 categoryName，过滤 MOCK_PAPERS 后以 List 展示该科目下的考卷；
+ *   接收科目页传入的 categoryName，展示该科目下过滤后的考卷列表；
  *   点击任意考卷行 → 通过根栈 pageStack 打开沉浸式答题页（盖住底部 Tab）。
  *
- * 【架构位置】
- *   features/exam/view/ 目录 → 无 @Entry，注册在 ExamSubjectPage 的 ExamRouter 中；
- *   属于 exam 域内路由（examStack），push 后底部 Tab 仍然可见。
+ * 【分层职责（View 层）】
+ *   零业务判断：科目名与考卷列表数据全部来自 ExamListViewModel；
+ *   导航职责留在本层：onReady 从路由参数取科目名后交给 ViewModel；
+ *   状态持有：用 @Local 持有 viewModel 实例，@Trace 字段变更自动刷新 UI。
  *
  * 【关键概念】
  *   NavDestination         : 导航目标页根容器（页面根节点）
  *   onReady                : 在子组件构建前触发，用于从 NavDestinationContext 取路由参数
  *   pathInfo.param         : 上游 pushPathByName(name, param) 传入的参数
- *   @Local                 : 页面内部状态（科目名、过滤后的考卷列表）
+ *   @Local                 : 页面内部状态（此处持有 ViewModel 实例）
  *   @Consumer('pageStack') : 跨层级直取根栈，用于沉浸式跳转
  *   List/ListItem          : 列表容器与列表项
  *   ForEach                : 循环渲染，key 用全局唯一的 paper.id
  */
 import { CommonConstants } from '../../../common/constants/CommonConstants'
 import { RouteConstants } from '../../../common/constants/RouteConstants'
-import { MOCK_PAPERS } from '../../../common/mock/MockExamData'
 import { PaperInfo } from '../../../common/models/QuestionModel'
+import { ExamListViewModel } from '../viewModel/ExamListViewModel'
 
 // ===== 考卷行子组件 =====
 // 作用：展示一张考卷的完整信息（名称、等级标签、题量/时长/及格分、已考次数、成绩）
@@ -99,12 +100,12 @@ struct ExamPaperRow {
 // ===== 考卷列表页主组件（导出给 ExamRouter 使用）=====
 @ComponentV2
 export struct ExamListPage {
-  @Local categoryName: string = ''      // 上游传入的科目名
-  @Local papers: PaperInfo[] = []       // 按科目过滤后的考卷
+  // 页面所有状态都在 ViewModel 上（@Local 持有实例）
+  @Local viewModel: ExamListViewModel = new ExamListViewModel()
 
   build() {
     NavDestination() {
-      if (this.papers.length === 0) {
+      if (this.viewModel.papers.length === 0) {
         // ===== 空态：该科目下没有考卷 =====
         Column() {
           Text('该科目暂无考卷')
@@ -117,7 +118,7 @@ export struct ExamListPage {
       } else {
         // ===== 考卷列表 =====
         List({ space: CommonConstants.SPACE_M }) {           // 行间距 16
-          ForEach(this.papers, (paper: PaperInfo) => {
+          ForEach(this.viewModel.papers, (paper: PaperInfo) => {
             ListItem() {
               ExamPaperRow({ paper: paper })                 // 向行组件传入 paper
             }
@@ -128,15 +129,14 @@ export struct ExamListPage {
         .padding(CommonConstants.SPACE_M)                    // 内边距 16
       }
     }
-    .title(this.categoryName)                                // 标题栏显示科目名
+    .title(this.viewModel.categoryName)                      // 标题栏显示科目名
     .backgroundColor(CommonConstants.COLOR_BG_PAGE)          // 页面背景 #F5F6FA
     .onReady((context: NavDestinationContext) => {
-      // onReady 在子组件构建前触发：此处取参数，避免先闪空态再出列表
+      // 导航职责留在 View 层：onReady 在子组件构建前取参数，避免先闪空态再出列表
       // SDK 中 NavPathInfo.param 声明为 unknown（ArkTS 禁止 unknown 类型），故按契约强转为 string
       const param = context.pathInfo?.param as string
-      this.categoryName = param === undefined ? '' : param
-      // 按科目过滤：不修改 MOCK_PAPERS 原数组
-      this.papers = MOCK_PAPERS.filter((paper: PaperInfo) => paper.categoryName === this.categoryName)
+      // 业务交给 ViewModel：按科目过滤试卷（过滤逻辑下沉为 PaperUtils 可测纯函数）
+      this.viewModel.loadByCategory(param === undefined ? '' : param)
     })
   }
 }
