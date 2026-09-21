@@ -1,27 +1,23 @@
 /**
- * MinePage — 「我的」页面组件
+ * MinePage — 「我的」页面组件（View 层）
  *
  * 【作用】
  *   展示用户信息卡片 + 设置功能列表 + 退出登录按钮。
  *   被 MainPage.ets 通过 import 引入，放在 TabContent 中调用。
  *
- * 【架构位置】
- *   features/mine/view/ 目录 → 无 @Entry，不是路由页面，而是可复用组件
- *   被 pages/MainPage.ets import 后调用：MinePage()
+ * 【分层职责（View 层）】
+ *   零业务判断：用户昵称与签名来自 MineViewModel，四个设置项为纯静态展示；
+ *   导航留在本层：退出登录操作根栈 pageStack.clear() 回登录页。
  *
- * 【关键概念】
- *   @ComponentV2 : 声明组件
- *   export struct : 导出组件，外部才能 import
- *   @Param       : 接收父组件传入的参数
- *   Blank        : 弹性空白占位，把按钮推到最底部
- *   Button       : 按钮组件
- *   Image($r())  : 加载资源图片
+ * 【域根结构（必须原样保留）】
+ *   Navigation(mineStack) 自持子栈 + MineRouter 域内路由注册（预留）。
  */
 import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { MineViewModel } from '../viewModel/MineViewModel'
 
 // ===== 设置条目子组件 =====
 // 作用：渲染一行设置项，左边是标题，右边是箭头 >
-// 注意：没有 export，只能在 MinePage.ets 内部使用
+// 注意：没有 export，只能在 MinePage.ets 内部使用；纯静态展示，不建模
 @ComponentV2
 struct SettingItem {
   // @Param：父组件传入的标题文字
@@ -52,19 +48,27 @@ struct SettingItem {
 @ComponentV2
 export struct MinePage {
   // 三级导航：Mine 域自持子栈（预留）
-    @Provider('mineStack') mineStack: NavPathStack = new NavPathStack()
-    // 登出要操作根栈
-    @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
+  @Provider('mineStack') mineStack: NavPathStack = new NavPathStack()
+  // 登出要操作根栈
+  @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
 
-    // Mine 域内路由注册（预留）
-    @Builder
-    MineRouter(name: string, param: Object) {
-    }
+  // 页面动态状态都在 ViewModel 上（@Local 持有实例）
+  @Local viewModel: MineViewModel = new MineViewModel()
 
-    build() {
-      Navigation(this.mineStack) {
-        // 整个页面用 Column 纵向排列
-        Column() {
+  // Mine 域内路由注册（预留）
+  @Builder
+  MineRouter(name: string, param: Object) {
+  }
+
+  // 进入页面时触发用户信息加载（View 只负责触发，业务在 ViewModel 内完成）
+  aboutToAppear(): void {
+    this.viewModel.loadUserInfo()
+  }
+
+  build() {
+    Navigation(this.mineStack) {
+      // 整个页面用 Column 纵向排列
+      Column() {
         // ===== 用户信息卡片 =====
         // Row 横向：左侧头像 + 右侧用户名/签名
         Row() {
@@ -75,14 +79,14 @@ export struct MinePage {
             .borderRadius(30)                              // 圆角 30 → 圆形
             .objectFit(ImageFit.Cover)                     // 裁剪铺满
 
-          // 右侧：用户名 + 个性签名
+          // 右侧：用户名 + 个性签名（数据来自 ViewModel）
           Column() {
-            Text('用户名')
+            Text(this.viewModel.user.nickname)
               .fontSize(CommonConstants.FONT_SUBTITLE)     // 字号 18
               .fontColor(CommonConstants.COLOR_TEXT_MAIN)
               .fontWeight(FontWeight.Bold)                 // 加粗
 
-            Text('个性签名')
+            Text(this.viewModel.user.signature)
               .fontSize(CommonConstants.FONT_CAPTION)      // 字号 14
               .fontColor(CommonConstants.COLOR_TEXT_SUB)   // 次文本色 #666
               .margin({ top: CommonConstants.SPACE_M })    // 与用户名间距 16
@@ -122,10 +126,10 @@ export struct MinePage {
           .fontColor(CommonConstants.COLOR_ERROR)           // 红色字 #F44336
           .fontSize(CommonConstants.FONT_BODY)
           .onClick(() => {
-            // 清空根栈：栈空后显示 Navigation 的内容页，即登录页——登出闭环
+            // 导航留在 View 层：清空根栈，栈空后显示 Navigation 的内容页，即登录页——登出闭环
             this.pageStack.clear()
           })
-        }
+      }
       .width('100%')
       .height('100%')                                       // 占满全屏
       .backgroundColor(CommonConstants.COLOR_BG_PAGE)        // 页面背景 #F5F6FA
