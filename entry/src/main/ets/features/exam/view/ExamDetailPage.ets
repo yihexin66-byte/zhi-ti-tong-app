@@ -1,36 +1,28 @@
-// 考试模式答题页：展示试卷信息、题目内容及选项，支持上下题切换
+// 考试模式答题页（View 层）：展示试卷信息、题目内容及选项，支持上下题切换
+//
+// 【分层职责（View 层）】
+//   零业务判断：题号、选中态、题型文案全部来自 ExamDetailViewModel；
+//   事件只转发：选项点击 → vm.handleSingleSelect / vm.handleMultiSelect，
+//              切题 → vm.prevQuestion / vm.nextQuestion；
+//   导航留在本层：提交试卷 push 到根栈结果页。
 import { CommonConstants } from '../../../common/constants/CommonConstants'
 import { RouteConstants } from '../../../common/constants/RouteConstants'
-import { MOCK_PAPER, MOCK_QUESTIONS } from '../../../common/mock/MockExamData'
 import { OptionItem } from '../../../common/models/QuestionModel'
+import { ExamDetailViewModel } from '../viewModel/ExamDetailViewModel'
 
 @ComponentV2
 export struct ExamDetailPage {
   @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
-  @Local currentIndex: number = 0
-  @Local selectedAnswer: string = ''
-  @Local multiAnswers: string[] = []
 
-  // 根据题型返回中文名称
-  getTypeLabel(type: string): string {
-    if (type === 'JUDGE') {
-      return '判断题'
-    }
-    if (type === 'SINGLE') {
-      return '单选题'
-    }
-    if (type === 'MULTI') {
-      return '多选题'
-    }
-    return ''
-  }
+  // 页面所有状态都在 ViewModel 上（@Local 持有实例）
+  @Local viewModel: ExamDetailViewModel = new ExamDetailViewModel()
 
   build() {
     NavDestination() {
       Column() {
         // ========== 顶部标题区 ==========
         Column() {
-          Text(MOCK_PAPER.paperName)
+          Text(this.viewModel.paper.paperName)
             .fontSize(CommonConstants.FONT_BODY)
             .fontWeight(FontWeight.Bold)
             .fontColor(CommonConstants.COLOR_TEXT_MAIN)
@@ -41,10 +33,10 @@ export struct ExamDetailPage {
           Row() {
             Text() {
               Span('第 ')
-              Span(`${this.currentIndex + 1}`)
+              Span(`${this.viewModel.currentIndex + 1}`)
                 .fontColor(CommonConstants.COLOR_WARN)
               Span(' 题 / 共 ')
-              Span(`${MOCK_QUESTIONS.length}`)
+              Span(`${this.viewModel.questions.length}`)
                 .fontColor(CommonConstants.COLOR_TEXT_SUB)
               Span(' 题')
             }
@@ -65,8 +57,8 @@ export struct ExamDetailPage {
 
         // ========== 中部题目区域 ==========
         Column() {
-          // 题型标签
-          Text(this.getTypeLabel(MOCK_QUESTIONS[this.currentIndex].type))
+          // 题型标签（换算逻辑在 ViewModel）
+          Text(this.viewModel.getTypeLabel(this.viewModel.questions[this.viewModel.currentIndex].type))
             .fontSize(CommonConstants.FONT_CAPTION)
             .fontColor(CommonConstants.COLOR_PRIMARY)
             .borderWidth(1)
@@ -76,7 +68,7 @@ export struct ExamDetailPage {
             .padding({ left: 8, right: 8, top: 2, bottom: 2 })
 
           // 题干内容
-          Text(MOCK_QUESTIONS[this.currentIndex].content)
+          Text(this.viewModel.questions[this.viewModel.currentIndex].content)
             .fontSize(CommonConstants.FONT_BODY)
             .fontColor(CommonConstants.COLOR_TEXT_MAIN)
             .lineHeight(24)
@@ -84,24 +76,22 @@ export struct ExamDetailPage {
             .width('100%')
 
           // 选项列表
-          ForEach(MOCK_QUESTIONS[this.currentIndex].options, (option: OptionItem) => {
+          ForEach(this.viewModel.questions[this.viewModel.currentIndex].options, (option: OptionItem) => {
             Row() {
-              if (MOCK_QUESTIONS[this.currentIndex].type === 'MULTI') {
+              if (this.viewModel.isCurrentMulti()) {
                 Checkbox()
-                  .select(this.multiAnswers.indexOf(option.label) !== -1)
+                  .select(this.viewModel.isMultiChecked(option.label))
                   .onChange((isChecked: boolean) => {
-                    if (isChecked) {
-                      this.multiAnswers = [...this.multiAnswers, option.label]
-                    } else {
-                      this.multiAnswers = this.multiAnswers.filter((item: string) => item !== option.label)
-                    }
+                    // 事件只转发：toggle 语义由 ViewModel 处理（已选再点=取消）
+                    this.viewModel.handleMultiSelect(option.label)
                   })
               } else {
-                Radio({ value: option.label, group: `q_${this.currentIndex}` })
-                  .checked(this.selectedAnswer === option.label)
+                Radio({ value: option.label, group: `q_${this.viewModel.currentIndex}` })
+                  .checked(this.viewModel.isSingleChecked(option.label))
                   .onChange((isChecked: boolean) => {
                     if (isChecked) {
-                      this.selectedAnswer = option.label
+                      // 事件只转发：单选替换语义由 ViewModel 处理
+                      this.viewModel.handleSingleSelect(option.label)
                     }
                   })
               }
@@ -112,7 +102,7 @@ export struct ExamDetailPage {
             }
             .width('100%')
             .margin({ top: CommonConstants.SPACE_M })
-          }, (option: OptionItem) => `${this.currentIndex}_${option.label}`)
+          }, (option: OptionItem) => `${this.viewModel.currentIndex}_${option.label}`)
         }
         .width('100%')
         .padding(CommonConstants.SPACE_M)
@@ -127,13 +117,10 @@ export struct ExamDetailPage {
               .backgroundColor(CommonConstants.COLOR_TEXT_HINT)
               .fontColor(CommonConstants.COLOR_TEXT_MAIN)
               .fontSize(CommonConstants.FONT_CAPTION)
-              .enabled(this.currentIndex > 0)
+              .enabled(this.viewModel.currentIndex > 0)
               .onClick(() => {
-                if (this.currentIndex > 0) {
-                  this.currentIndex--
-                  this.selectedAnswer = ''
-                  this.multiAnswers = []
-                }
+                // 事件只转发：边界保护与切题重置在 ViewModel
+                this.viewModel.prevQuestion()
               })
 
             Button('下一题')
@@ -142,13 +129,10 @@ export struct ExamDetailPage {
               .backgroundColor(CommonConstants.COLOR_TEXT_HINT)
               .fontColor(CommonConstants.COLOR_TEXT_MAIN)
               .fontSize(CommonConstants.FONT_CAPTION)
-              .enabled(this.currentIndex < MOCK_QUESTIONS.length - 1)
+              .enabled(this.viewModel.currentIndex < this.viewModel.questions.length - 1)
               .onClick(() => {
-                if (this.currentIndex < MOCK_QUESTIONS.length - 1) {
-                  this.currentIndex++
-                  this.selectedAnswer = ''
-                  this.multiAnswers = []
-                }
+                // 事件只转发：边界保护与切题重置在 ViewModel
+                this.viewModel.nextQuestion()
               })
 
             Button('标记存疑')
@@ -178,6 +162,7 @@ export struct ExamDetailPage {
             })
             .margin({ top: CommonConstants.SPACE_M })
             .onClick(() => {
+              // 导航留在 View 层：push 到根栈结果页
               this.pageStack.pushPathByName(RouteConstants.ANSWER_RESULT, null)
             })
         }
