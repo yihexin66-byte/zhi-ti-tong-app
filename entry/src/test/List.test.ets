@@ -8,6 +8,7 @@ import subjectViewModelTest from './SubjectViewModel.test'
 import examListViewModelTest from './ExamListViewModel.test'
 import examDetailViewModelTest from './ExamDetailViewModel.test'
 import resultViewModelTest from './ResultViewModel.test'
+import mineViewModelTest from './MineViewModel.test'
 
 export default function testsuite() {
   localUnitTest();
@@ -20,4 +21,5 @@ export default function testsuite() {
   examListViewModelTest()
   examDetailViewModelTest()
   resultViewModelTest()
+  mineViewModelTest()
 }
