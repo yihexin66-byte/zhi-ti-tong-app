@@ -4,6 +4,7 @@ import timeUtilsTest from './TimeUtils.test'
 import validationUtilTest from './ValidationUtil.test'
 import loginViewModelTest from './LoginViewModel.test'
 import homeViewModelTest from './HomeViewModel.test'
+import subjectViewModelTest from './SubjectViewModel.test'
 
 export default function testsuite() {
   localUnitTest();
@@ -12,4 +13,5 @@ export default function testsuite() {
   validationUtilTest()
   loginViewModelTest()
   homeViewModelTest()
+  subjectViewModelTest()
 }
