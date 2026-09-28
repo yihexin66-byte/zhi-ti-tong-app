@@ -47,6 +47,12 @@ export struct AnswerResultPage {
               .fontSize(FONT_SMALL)
               .fontColor(CommonConstants.COLOR_TEXT_SUB)
               .margin({ top: CommonConstants.SPACE_M })
+
+            // 切后台防作弊：本场切出次数（交卷时定格，文案由 ViewModel 派生）
+            Text(this.viewModel.getSwitchCountText())
+              .fontSize(FONT_SMALL)
+              .fontColor(CommonConstants.COLOR_TEXT_SUB)
+              .margin({ top: CommonConstants.SPACE_M })
           }
           .width('100%')
           .backgroundColor(Color.White)

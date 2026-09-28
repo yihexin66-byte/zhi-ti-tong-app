@@ -10,6 +10,7 @@
  *   答题页全部业务状态集中于此：当前题号、单选选中项、多选选中项；
  *   选项选择、切题重置为纯逻辑方法（单测覆盖）；
  *   提交后跳转结果页属于导航，由 View 层执行。
+ *   切后台防作弊：开考/交卷时启停全局监视器（AppStorageV2 运行期状态）。
  *
  * 【数据来源】
  *   Mock 数据只来自 common/mock（MOCK_PAPER / MOCK_QUESTIONS），模块内不新造业务数据。
@@ -18,6 +19,8 @@ import { BaseViewModel } from '@zhititong/common'
 import { Logger } from '@zhititong/common'
 import { MOCK_PAPER, MOCK_QUESTIONS } from '@zhititong/common'
 import { PaperInfo, QuestionItem } from '@zhititong/common'
+import { BackgroundMonitor, StateKeys } from '@zhititong/common'
+import { AppStorageV2 } from '@kit.ArkUI'
 
 @ObservedV2
 export class ExamDetailViewModel extends BaseViewModel {
@@ -34,9 +37,38 @@ export class ExamDetailViewModel extends BaseViewModel {
   // 多选题选中项集合（切题重置）
   @Trace multiAnswers: string[] = []
 
+  // 切后台监视器引用（运行期状态，全局单例）：懒连接，
+  // 既避免构造函数触碰 UI 状态 API（保证单测可实例化），也避免重复 connect
+  private monitorRef: BackgroundMonitor | undefined = undefined
+
   constructor() {
     super()
     this.logger = new Logger('[ExamDetailViewModel]')
+  }
+
+  /**
+   * 取全局监视器（首次访问时 connect 同一 key，拿到的是应用级单例）
+   */
+  private getMonitor(): BackgroundMonitor {
+    if (this.monitorRef === undefined) {
+      this.monitorRef = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
+        () => new BackgroundMonitor())!
+    }
+    return this.monitorRef
+  }
+
+  /**
+   * 开考：进入监视并清零计数（由答题页 NavDestination.onReady 调用）
+   */
+  startExam(): void {
+    this.getMonitor().start()
+  }
+
+  /**
+   * 交卷：停止监视（计数保留，供结果页读取；由交卷按钮调用）
+   */
+  submitPaper(): void {
+    this.getMonitor().stop()
   }
 
   /**

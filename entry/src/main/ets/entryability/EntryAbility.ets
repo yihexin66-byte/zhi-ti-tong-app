@@ -1,7 +1,7 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window, PersistenceV2 } from '@kit.ArkUI';
-import { FontSetting, StateKeys } from '@zhititong/common';
+import { window, PersistenceV2, AppStorageV2 } from '@kit.ArkUI';
+import { FontSetting, BackgroundMonitor, StateKeys } from '@zhititong/common';
 
 const DOMAIN = 0x0000;
 
@@ -42,11 +42,16 @@ export default class EntryAbility extends UIAbility {
 
   onForeground(): void {
     // Ability has brought to foreground
+    // 预留：回到前台暂无逻辑，保留回调以完整呈现生命周期对
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
   }
 
   onBackground(): void {
     // Ability has back to background
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
+    // 应用切到后台：考试进行中则记一次（防作弊计数）
+    // 是否计数由监视器按 monitoring 状态自行判断，Ability 不掺和业务规则
+    AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
+      () => new BackgroundMonitor())!.increase();
   }
 }

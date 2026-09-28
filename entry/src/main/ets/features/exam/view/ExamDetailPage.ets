@@ -9,7 +9,10 @@ import { CommonConstants } from '@zhititong/common'
 import { RouteConstants } from '@zhititong/common'
 import { OptionItem } from '@zhititong/common'
 import { FontSetting, StateKeys } from '@zhititong/common'
-import { PersistenceV2 } from '@kit.ArkUI'
+import { BackgroundMonitor } from '@zhititong/common'
+import { Logger } from '@zhititong/common'
+import { PersistenceV2, AppStorageV2 } from '@kit.ArkUI'
+import { BusinessError } from '@kit.BasicServicesKit'
 import { ExamDetailViewModel } from '../viewModel/ExamDetailViewModel'
 
 @ComponentV2
@@ -22,6 +25,31 @@ export struct ExamDetailPage {
   // 全局字号设置：与"我的"页 connect 同一个 key、同一个实例
   // 仅题干与选项消费该偏移量；倒计时、按钮、进度、答题卡等保持固定字号
   @Local font: FontSetting = PersistenceV2.connect(FontSetting, StateKeys.FONT_SETTING, () => new FontSetting())!
+
+  // 切后台监视器：与 EntryAbility connect 同一个 key、同一个实例
+  @Local monitor: BackgroundMonitor = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
+    () => new BackgroundMonitor())!
+
+  /**
+   * 计数变化提示：切后台累计一次后，回到前台立即弹 Toast 提醒
+   * （monitoring 为 false 或计数为 0 时不打扰）
+   */
+  @Monitor('monitor.count')
+  onSwitchCountChanged(): void {
+    if (!this.monitor.monitoring || this.monitor.count <= 0) {
+      return
+    }
+    try {
+      this.getUIContext().getPromptAction().showToast({
+        message: `检测到切出应用，已记录 ${this.monitor.count} 次，请专心作答`,
+        duration: 3000
+      })
+    } catch (e) {
+      // 提示弹不出来不该影响计数与考试流程：按工程规范降级记 warn 即可
+      const error = e as BusinessError
+      new Logger('ExamDetailPage').warn(`切后台提示弹出失败：code=${error.code}, message=${error.message}`)
+    }
+  }
 
   build() {
     NavDestination() {
@@ -168,6 +196,8 @@ export struct ExamDetailPage {
             })
             .margin({ top: CommonConstants.SPACE_M })
             .onClick(() => {
+              // 交卷先定格计数（stop 只停不清），再执行跳转
+              this.viewModel.submitPaper()
               // 导航留在 View 层：push 到根栈结果页
               this.pageStack.pushPathByName(RouteConstants.ANSWER_RESULT, null)
             })
@@ -180,5 +210,10 @@ export struct ExamDetailPage {
       .backgroundColor(CommonConstants.COLOR_BG_PAGE)
     }
     .hideTitleBar(true)
+    .onReady(() => {
+      // 每次导航进入只触发一次：开考即进入监视并清零计数
+      // 禁止用 onShown——应用从后台切回前台也会触发 onShown，会把刚累计的计数错误清零
+      this.viewModel.startExam()
+    })
   }
 }

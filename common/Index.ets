@@ -9,6 +9,7 @@ export { MOCK_RESULT } from './src/main/ets/mock/MockResultData';
 export { OptionItem, QuestionItem, PaperInfo, AnswerItem, ExamResult } from './src/main/ets/models/QuestionModel';
 // 状态模型
 export { FontSetting, FONT_LEVELS, FontLevel } from './src/main/ets/models/FontSetting';
+export { BackgroundMonitor } from './src/main/ets/models/BackgroundMonitor';
 export { CategoryGroup, getRandomPapers, groupByCategory, filterByCategory } from './src/main/ets/utils/PaperUtils';
 export { formatDuration } from './src/main/ets/utils/TimeUtils';
 export { ValidationResult, ValidationUtil } from './src/main/ets/utils/ValidationUtil';

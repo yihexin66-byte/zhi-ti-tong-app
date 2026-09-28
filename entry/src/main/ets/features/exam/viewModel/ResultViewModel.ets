@@ -22,15 +22,40 @@ import { Logger } from '@zhititong/common'
 import { MOCK_RESULT } from '@zhititong/common'
 import { AnswerItem, ExamResult } from '@zhititong/common'
 import { formatDuration } from '@zhititong/common'
+import { BackgroundMonitor, StateKeys } from '@zhititong/common'
+import { AppStorageV2 } from '@kit.ArkUI'
 
 @ObservedV2
 export class ResultViewModel extends BaseViewModel {
   // 交卷结果（初始即 Mock，保证首帧不空；loadResult 为项目 6 接口的换入点）
   @Trace result: ExamResult = MOCK_RESULT
 
+  // 切后台监视器引用（运行期状态，全局单例）：懒连接，
+  // 既避免构造函数触碰 UI 状态 API（保证单测可实例化），也避免重复 connect
+  private monitorRef: BackgroundMonitor | undefined = undefined
+
   constructor() {
     super()
     this.logger = new Logger('[ResultViewModel]')
+  }
+
+  /**
+   * 取全局监视器（首次访问时 connect 同一 key，读取交卷时定格的计数）
+   */
+  private getMonitor(): BackgroundMonitor {
+    if (this.monitorRef === undefined) {
+      this.monitorRef = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
+        () => new BackgroundMonitor())!
+    }
+    return this.monitorRef
+  }
+
+  /**
+   * 本场切出应用提示文案（展示换算由 ViewModel 派生，View 只取值渲染）
+   */
+  getSwitchCountText(): string {
+    const count: number = this.getMonitor().count
+    return count > 0 ? `本场切出应用 ${count} 次` : '本场未切出应用'
   }
 
   /**
