@@ -1,6 +1,6 @@
 // 应用唯一入口（唯一 @Entry）
 // RootDomain 只负责三件事：创建根栈 pageStack、注册根路由、首屏分流
-import { RouteConstants } from '../common/constants/RouteConstants'
+import { RouteConstants } from '@zhititong/common'
 import { MainPage } from './MainPage'
 import { LoginPage } from '../features/login/view/LoginPage'
 import { ExamDetailPage } from '../features/exam/view/ExamDetailPage'

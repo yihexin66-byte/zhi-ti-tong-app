@@ -11,9 +11,9 @@
  *   纯展示 + 事件转发：所有展示数据由 @Param 传入；
  *   导航操作留在 View 层（@Consumer 取 exam 域内子栈）。
  */
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { RouteConstants } from '../../../common/constants/RouteConstants'
-import { CategoryGroup } from '../../../common/utils/PaperUtils'
+import { CommonConstants } from '@zhititong/common'
+import { RouteConstants } from '@zhititong/common'
+import { CategoryGroup } from '@zhititong/common'
 
 @ComponentV2
 export struct ExamSubjectCard {

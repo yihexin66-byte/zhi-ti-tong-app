@@ -1,0 +1,9 @@
+{
+  "name": "@zhititong/common",
+  "version": "1.0.0",
+  "description": "通用能力库：base、constants、models、mock、utils、log",
+  "main": "Index.ets",
+  "author": "",
+  "license": "",
+  "dependencies": {}
+}

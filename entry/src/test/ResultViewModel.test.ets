@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { ResultViewModel } from '../main/ets/features/exam/viewModel/ResultViewModel'
-import { AnswerItem } from '../main/ets/common/models/QuestionModel'
-import { CommonConstants } from '../main/ets/common/constants/CommonConstants'
+import { AnswerItem } from '@zhititong/common'
+import { CommonConstants } from '@zhititong/common'
 
 export default function resultViewModelTest() {
   describe('resultViewModelTest', () => {

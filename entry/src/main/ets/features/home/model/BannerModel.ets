@@ -8,7 +8,7 @@
  *   既避免 model/viewModel 依赖资源系统，也保证资源解析一定发生在渲染上下文内。
  *   公共模型（PaperInfo 等）已在 common/models，模块不重复定义，只做引用与再包装。
  */
-import { PaperInfo } from '../../../common/models/QuestionModel'
+import { PaperInfo } from '@zhititong/common'
 
 // 首页顶部轮播项
 export class BannerModel {

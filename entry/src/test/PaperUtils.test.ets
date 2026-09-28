@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium'
-import { getRandomPapers } from '../main/ets/common/utils/PaperUtils'
-import { PaperInfo } from '../main/ets/common/models/QuestionModel'
+import { getRandomPapers } from '@zhititong/common'
+import { PaperInfo } from '@zhititong/common'
 
 // 造 5 张最简测试试卷（只需 id 有区分度）
 function makePapers(count: number): PaperInfo[] {

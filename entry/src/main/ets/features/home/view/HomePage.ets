@@ -21,8 +21,8 @@
  *   ForEach      : 循环渲染，遍历数组为每个元素生成 UI
  *   $r()         : 引用资源文件（图片等）—— 本层不再写死，由 ViewModel 提供
  */
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { RouteConstants } from '../../../common/constants/RouteConstants'
+import { CommonConstants } from '@zhititong/common'
+import { RouteConstants } from '@zhititong/common'
 import { BannerModel, RecommendedPaperItem } from '../model/BannerModel'
 import { HomeViewModel } from '../viewModel/HomeViewModel'
 

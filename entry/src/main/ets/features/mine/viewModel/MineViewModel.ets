@@ -12,9 +12,9 @@
  *   四个设置项为纯静态展示，不为其建 Model/数据源（避免为 MVVM 而 MVVM）；
  *   退出登录的 pageStack.clear() 属导航，留在 View 层。
  */
-import { BaseViewModel } from '../../../common/base/BaseViewModel'
-import { Result } from '../../../common/base/Result'
-import { Logger } from '../../../common/log/Logger'
+import { BaseViewModel } from '@zhititong/common'
+import { Result } from '@zhititong/common'
+import { Logger } from '@zhititong/common'
 import { MineUserModel } from '../model/MineUserModel'
 
 @ObservedV2

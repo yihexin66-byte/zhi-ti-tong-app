@@ -11,14 +11,14 @@
  *   Mock 数据只来自 common/mock（MOCK_PAPERS），模块内不新造业务数据；
  *   随机抽取复用 common/utils/PaperUtils 的纯函数。
  */
-import { BaseViewModel } from '../../../common/base/BaseViewModel'
-import { Result } from '../../../common/base/Result'
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { RouteConstants } from '../../../common/constants/RouteConstants'
-import { Logger } from '../../../common/log/Logger'
-import { MOCK_PAPERS } from '../../../common/mock/MockExamData'
-import { PaperInfo } from '../../../common/models/QuestionModel'
-import { getRandomPapers } from '../../../common/utils/PaperUtils'
+import { BaseViewModel } from '@zhititong/common'
+import { Result } from '@zhititong/common'
+import { CommonConstants } from '@zhititong/common'
+import { RouteConstants } from '@zhititong/common'
+import { Logger } from '@zhititong/common'
+import { MOCK_PAPERS } from '@zhititong/common'
+import { PaperInfo } from '@zhititong/common'
+import { getRandomPapers } from '@zhititong/common'
 import { BannerModel, RecommendedPaperItem } from '../model/BannerModel'
 
 @ObservedV2

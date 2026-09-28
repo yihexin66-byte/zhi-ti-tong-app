@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { ExamListViewModel } from '../main/ets/features/exam/viewModel/ExamListViewModel'
-import { MOCK_PAPERS } from '../main/ets/common/mock/MockExamData'
-import { filterByCategory } from '../main/ets/common/utils/PaperUtils'
+import { MOCK_PAPERS } from '@zhititong/common'
+import { filterByCategory } from '@zhititong/common'
 
 export default function examListViewModelTest() {
   describe('examListViewModelTest', () => {

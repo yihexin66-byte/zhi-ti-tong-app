@@ -11,11 +11,11 @@
  *   Mock 数据只来自 common/mock（MOCK_PAPERS），模块内不新造业务数据；
  *   科目聚合复用 common/utils/PaperUtils 的 groupByCategory 纯函数（已测，不重写）。
  */
-import { BaseViewModel } from '../../../common/base/BaseViewModel'
-import { Result } from '../../../common/base/Result'
-import { Logger } from '../../../common/log/Logger'
-import { MOCK_PAPERS } from '../../../common/mock/MockExamData'
-import { CategoryGroup, groupByCategory } from '../../../common/utils/PaperUtils'
+import { BaseViewModel } from '@zhititong/common'
+import { Result } from '@zhititong/common'
+import { Logger } from '@zhititong/common'
+import { MOCK_PAPERS } from '@zhititong/common'
+import { CategoryGroup, groupByCategory } from '@zhititong/common'
 
 @ObservedV2
 export class SubjectViewModel extends BaseViewModel {

@@ -21,9 +21,9 @@
  *   columnsTemplate : 定义网格列数及比例（'1fr 1fr' = 两列等宽）
  *   ForEach      : 循环渲染，key 用科目唯一名
  */
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { RouteConstants } from '../../../common/constants/RouteConstants'
-import { CategoryGroup } from '../../../common/utils/PaperUtils'
+import { CommonConstants } from '@zhititong/common'
+import { RouteConstants } from '@zhititong/common'
+import { CategoryGroup } from '@zhititong/common'
 import { ExamSubjectCard } from './ExamSubjectCard'
 import { ExamListPage } from './ExamListPage'
 import { SubjectViewModel } from '../viewModel/SubjectViewModel'

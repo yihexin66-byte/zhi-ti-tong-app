@@ -19,9 +19,9 @@
  *   List/ListItem          : 列表容器与列表项
  *   ForEach                : 循环渲染，key 用全局唯一的 paper.id
  */
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { RouteConstants } from '../../../common/constants/RouteConstants'
-import { PaperInfo } from '../../../common/models/QuestionModel'
+import { CommonConstants } from '@zhititong/common'
+import { RouteConstants } from '@zhititong/common'
+import { PaperInfo } from '@zhititong/common'
 import { ExamListViewModel } from '../viewModel/ExamListViewModel'
 
 // ===== 考卷行子组件 =====

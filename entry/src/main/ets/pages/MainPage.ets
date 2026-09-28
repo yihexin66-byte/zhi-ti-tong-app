@@ -1,6 +1,6 @@
 // 主页面（TabDomain）：只负责 Tab 装配，不持有子栈、不注册路由
 // 每个 Tab 对应的 Feature 根页面自持 Navigation + 子栈 + 域内路由
-import { CommonConstants } from '../common/constants/CommonConstants'
+import { CommonConstants } from '@zhititong/common'
 import { HomePage } from '../features/home/view/HomePage'
 import { ExamSubjectPage } from '../features/exam/view/ExamSubjectPage'
 import { MinePage } from '../features/mine/view/MinePage'

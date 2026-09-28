@@ -8,7 +8,7 @@
  * 【架构位置】
  *   features/exam/view/ 目录 → 可复用子组件独立成文件（文件名与类名一致）。
  */
-import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { CommonConstants } from '@zhititong/common'
 
 @ComponentV2
 export struct AnswerCell {

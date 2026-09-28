@@ -1,6 +1,6 @@
 // 登录/注册页（View 层）：零业务逻辑，全部委托 LoginViewModel
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { RouteConstants } from '../../../common/constants/RouteConstants'
+import { CommonConstants } from '@zhititong/common'
+import { RouteConstants } from '@zhititong/common'
 import { LoginViewModel } from '../viewModel/LoginViewModel'
 
 @ComponentV2

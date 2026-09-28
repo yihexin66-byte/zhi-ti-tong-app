@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { ExamDetailViewModel } from '../main/ets/features/exam/viewModel/ExamDetailViewModel'
-import { MOCK_QUESTIONS } from '../main/ets/common/mock/MockExamData'
+import { MOCK_QUESTIONS } from '@zhititong/common'
 
 export default function examDetailViewModelTest() {
   describe('examDetailViewModelTest', () => {

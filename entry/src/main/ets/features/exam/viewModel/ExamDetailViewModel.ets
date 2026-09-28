@@ -14,10 +14,10 @@
  * 【数据来源】
  *   Mock 数据只来自 common/mock（MOCK_PAPER / MOCK_QUESTIONS），模块内不新造业务数据。
  */
-import { BaseViewModel } from '../../../common/base/BaseViewModel'
-import { Logger } from '../../../common/log/Logger'
-import { MOCK_PAPER, MOCK_QUESTIONS } from '../../../common/mock/MockExamData'
-import { PaperInfo, QuestionItem } from '../../../common/models/QuestionModel'
+import { BaseViewModel } from '@zhititong/common'
+import { Logger } from '@zhititong/common'
+import { MOCK_PAPER, MOCK_QUESTIONS } from '@zhititong/common'
+import { PaperInfo, QuestionItem } from '@zhititong/common'
 
 @ObservedV2
 export class ExamDetailViewModel extends BaseViewModel {

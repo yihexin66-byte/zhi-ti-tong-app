@@ -4,8 +4,8 @@
 //   零业务判断：结果数据、得分颜色、通过标签、说明行文案、答题卡格子颜色
 //   全部来自 ResultViewModel，View 只取值渲染（无三元业务判断）；
 //   导航留在本层："重新刷题" pop 弹回答题页。
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { AnswerItem } from '../../../common/models/QuestionModel'
+import { CommonConstants } from '@zhititong/common'
+import { AnswerItem } from '@zhititong/common'
 import { AnswerCell } from './AnswerCell'
 import { ResultViewModel } from '../viewModel/ResultViewModel'
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@ohos/hypium'
-import { formatDuration } from '../main/ets/common/utils/TimeUtils'
+import { formatDuration } from '@zhititong/common'
 
 export default function timeUtilsTest() {
   describe('formatDurationTest', () => {

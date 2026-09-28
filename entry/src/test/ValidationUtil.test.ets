@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@ohos/hypium'
-import { ValidationUtil } from '../main/ets/common/utils/ValidationUtil'
+import { ValidationUtil } from '@zhititong/common'
 
 export default function validationUtilTest() {
   describe('validateUsernameTest', () => {

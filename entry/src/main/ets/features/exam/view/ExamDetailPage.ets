@@ -5,9 +5,9 @@
 //   事件只转发：选项点击 → vm.handleSingleSelect / vm.handleMultiSelect，
 //              切题 → vm.prevQuestion / vm.nextQuestion；
 //   导航留在本层：提交试卷 push 到根栈结果页。
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { RouteConstants } from '../../../common/constants/RouteConstants'
-import { OptionItem } from '../../../common/models/QuestionModel'
+import { CommonConstants } from '@zhititong/common'
+import { RouteConstants } from '@zhititong/common'
+import { OptionItem } from '@zhititong/common'
 import { ExamDetailViewModel } from '../viewModel/ExamDetailViewModel'
 
 @ComponentV2

@@ -12,7 +12,7 @@
  * 【域根结构（必须原样保留）】
  *   Navigation(mineStack) 自持子栈 + MineRouter 域内路由注册（预留）。
  */
-import { CommonConstants } from '../../../common/constants/CommonConstants'
+import { CommonConstants } from '@zhititong/common'
 import { MineViewModel } from '../viewModel/MineViewModel'
 
 // ===== 设置条目子组件 =====

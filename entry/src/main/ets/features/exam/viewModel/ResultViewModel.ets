@@ -15,13 +15,13 @@
  * 【数据来源】
  *   Mock 数据只来自 common/mock（MOCK_RESULT），项目 6 接真实接口时只换数据源。
  */
-import { BaseViewModel } from '../../../common/base/BaseViewModel'
-import { Result } from '../../../common/base/Result'
-import { CommonConstants } from '../../../common/constants/CommonConstants'
-import { Logger } from '../../../common/log/Logger'
-import { MOCK_RESULT } from '../../../common/mock/MockResultData'
-import { AnswerItem, ExamResult } from '../../../common/models/QuestionModel'
-import { formatDuration } from '../../../common/utils/TimeUtils'
+import { BaseViewModel } from '@zhititong/common'
+import { Result } from '@zhititong/common'
+import { CommonConstants } from '@zhititong/common'
+import { Logger } from '@zhititong/common'
+import { MOCK_RESULT } from '@zhititong/common'
+import { AnswerItem, ExamResult } from '@zhititong/common'
+import { formatDuration } from '@zhititong/common'
 
 @ObservedV2
 export class ResultViewModel extends BaseViewModel {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { HomeViewModel } from '../main/ets/features/home/viewModel/HomeViewModel'
-import { MOCK_PAPERS } from '../main/ets/common/mock/MockExamData'
+import { MOCK_PAPERS } from '@zhititong/common'
 
 export default function homeViewModelTest() {
   describe('homeViewModelTest', () => {

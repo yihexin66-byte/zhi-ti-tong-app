@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { SubjectViewModel } from '../main/ets/features/exam/viewModel/SubjectViewModel'
-import { MOCK_PAPERS } from '../main/ets/common/mock/MockExamData'
-import { groupByCategory } from '../main/ets/common/utils/PaperUtils'
+import { MOCK_PAPERS } from '@zhititong/common'
+import { groupByCategory } from '@zhititong/common'
 
 export default function subjectViewModelTest() {
   describe('subjectViewModelTest', () => {

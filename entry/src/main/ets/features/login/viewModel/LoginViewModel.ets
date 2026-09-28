@@ -1,9 +1,9 @@
 /**
  * 登录/注册 ViewModel：业务逻辑与状态管理，零 UI
  */
-import { BaseViewModel } from '../../../common/base/BaseViewModel'
-import { Result } from '../../../common/base/Result'
-import { ValidationUtil } from '../../../common/utils/ValidationUtil'
+import { BaseViewModel } from '@zhititong/common'
+import { Result } from '@zhititong/common'
+import { ValidationUtil } from '@zhititong/common'
 import { LoginResponseModel, UserInfoModel } from '../model/LoginResponseModel'
 
 @ObservedV2
