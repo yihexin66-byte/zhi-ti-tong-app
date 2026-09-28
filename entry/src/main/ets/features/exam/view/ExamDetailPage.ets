@@ -8,6 +8,8 @@
 import { CommonConstants } from '@zhititong/common'
 import { RouteConstants } from '@zhititong/common'
 import { OptionItem } from '@zhititong/common'
+import { FontSetting, StateKeys } from '@zhititong/common'
+import { PersistenceV2 } from '@kit.ArkUI'
 import { ExamDetailViewModel } from '../viewModel/ExamDetailViewModel'
 
 @ComponentV2
@@ -16,6 +18,10 @@ export struct ExamDetailPage {
 
   // 页面所有状态都在 ViewModel 上（@Local 持有实例）
   @Local viewModel: ExamDetailViewModel = new ExamDetailViewModel()
+
+  // 全局字号设置：与"我的"页 connect 同一个 key、同一个实例
+  // 仅题干与选项消费该偏移量；倒计时、按钮、进度、答题卡等保持固定字号
+  @Local font: FontSetting = PersistenceV2.connect(FontSetting, StateKeys.FONT_SETTING, () => new FontSetting())!
 
   build() {
     NavDestination() {
@@ -69,7 +75,7 @@ export struct ExamDetailPage {
 
           // 题干内容
           Text(this.viewModel.questions[this.viewModel.currentIndex].content)
-            .fontSize(CommonConstants.FONT_BODY)
+            .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
             .fontColor(CommonConstants.COLOR_TEXT_MAIN)
             .lineHeight(24)
             .margin({ top: CommonConstants.SPACE_M })
@@ -96,7 +102,7 @@ export struct ExamDetailPage {
                   })
               }
               Text(`${option.label}. ${option.content}`)
-                .fontSize(CommonConstants.FONT_BODY)
+                .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
                 .fontColor(CommonConstants.COLOR_TEXT_MAIN)
                 .margin({ left: 8 })
             }

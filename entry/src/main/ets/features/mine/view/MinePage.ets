@@ -13,6 +13,8 @@
  *   Navigation(mineStack) 自持子栈 + MineRouter 域内路由注册（预留）。
  */
 import { CommonConstants } from '@zhititong/common'
+import { FontSetting, FONT_LEVELS, FontLevel, StateKeys } from '@zhititong/common'
+import { PersistenceV2 } from '@kit.ArkUI'
 import { MineViewModel } from '../viewModel/MineViewModel'
 
 // ===== 设置条目子组件 =====
@@ -55,6 +57,35 @@ export struct MinePage {
   // 页面动态状态都在 ViewModel 上（@Local 持有实例）
   @Local viewModel: MineViewModel = new MineViewModel()
 
+  // 全局字号设置：connect 同一 key，拿到的是应用级单例（@Trace 变化即刷新本页）
+  @Local font: FontSetting = PersistenceV2.connect(FontSetting, StateKeys.FONT_SETTING, () => new FontSetting())!
+
+  // 五档下拉选项：由 FONT_LEVELS 单一数据源派生（value 取档位文案）
+  private fontOptions: SelectOption[] = FONT_LEVELS.map((level: FontLevel): SelectOption => {
+    const option: SelectOption = { value: level.label }
+    return option
+  })
+
+  /**
+   * 当前字号偏移量对应的档位下标（反查失败回退"标准"档）
+   */
+  private getLevelIndex(): number {
+    const index: number = FONT_LEVELS.findIndex((level: FontLevel) => level.size === this.font.fontSize)
+    if (index >= 0) {
+      return index
+    }
+    // 找不到匹配：回退到 size 为 0 的"标准"档
+    const standard: number = FONT_LEVELS.findIndex((level: FontLevel) => level.size === 0)
+    return standard >= 0 ? standard : 0
+  }
+
+  /**
+   * 当前档位文案（Select 收起态显示）
+   */
+  private getLevelLabel(): string {
+    return FONT_LEVELS[this.getLevelIndex()].label
+  }
+
   // Mine 域内路由注册（预留）
   @Builder
   MineRouter(name: string, param: Object) {
@@ -82,12 +113,12 @@ export struct MinePage {
           // 右侧：用户名 + 个性签名（数据来自 ViewModel）
           Column() {
             Text(this.viewModel.user.nickname)
-              .fontSize(CommonConstants.FONT_SUBTITLE)     // 字号 18
+              .fontSize(CommonConstants.FONT_SUBTITLE + this.font.fontSize)  // 基准 18 + 全局偏移
               .fontColor(CommonConstants.COLOR_TEXT_MAIN)
               .fontWeight(FontWeight.Bold)                 // 加粗
 
             Text(this.viewModel.user.signature)
-              .fontSize(CommonConstants.FONT_CAPTION)      // 字号 14
+              .fontSize(CommonConstants.FONT_CAPTION + this.font.fontSize)   // 基准 14 + 全局偏移
               .fontColor(CommonConstants.COLOR_TEXT_SUB)   // 次文本色 #666
               .margin({ top: CommonConstants.SPACE_M })    // 与用户名间距 16
           }
@@ -102,6 +133,29 @@ export struct MinePage {
 
         // ===== 设置功能列表 =====
         Column() {
+          // 「字号大小」：五档下拉，选择后写入全局状态（用户名/签名即时缩放）
+          // 本行字号固定：设置行自身不参与缩放
+          Row() {
+            Text('字号大小')
+              .fontSize(CommonConstants.FONT_BODY)
+              .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+
+            Blank()
+
+            Select(this.fontOptions)
+              .selected(this.getLevelIndex())
+              .value(this.getLevelLabel())
+              .font({ size: CommonConstants.FONT_BODY })
+              .onSelect((index: number) => {
+                // 档位 → 偏移量：FONT_LEVELS 是唯一数据源
+                this.font.fontSize = FONT_LEVELS[index].size
+              })
+          }
+          .width('100%')
+          .height(CommonConstants.BTN_HEIGHT)                  // 行高与相邻设置行一致
+          .padding({ left: CommonConstants.SPACE_M, right: CommonConstants.SPACE_M })
+          .alignItems(VerticalAlign.Center)
+
           // 调用 SettingItem 子组件，传入不同标题
           // 每个条目一行，点击后跳转到对应功能页（后续实现）
           SettingItem({ title: '我的收藏' })
