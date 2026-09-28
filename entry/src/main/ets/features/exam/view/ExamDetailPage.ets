@@ -15,6 +15,9 @@ import { PersistenceV2, AppStorageV2 } from '@kit.ArkUI'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { ExamDetailViewModel } from '../viewModel/ExamDetailViewModel'
 
+// 工程日志口径：文件顶层 const，标签取文件主体名（struct 与 class 通吃、无实例开销）
+const logger: Logger = new Logger('ExamDetailPage')
+
 @ComponentV2
 export struct ExamDetailPage {
   @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
@@ -47,7 +50,7 @@ export struct ExamDetailPage {
     } catch (e) {
       // 提示弹不出来不该影响计数与考试流程：按工程规范降级记 warn 即可
       const error = e as BusinessError
-      new Logger('ExamDetailPage').warn(`切后台提示弹出失败：code=${error.code}, message=${error.message}`)
+      logger.warn(`切后台提示弹出失败：code=${error.code}, message=${error.message}`)
     }
   }
 

@@ -6,12 +6,16 @@
 //   导航留在本层："重新刷题" pop 弹回答题页。
 import { CommonConstants } from '@zhititong/common'
 import { AnswerItem } from '@zhititong/common'
+import { Logger } from '@zhititong/common'
 import { AnswerCell } from './AnswerCell'
 import { ResultViewModel } from '../viewModel/ResultViewModel'
 
 // 本页专用字号：大号得分 48、说明行 12（任务指定，常量库暂无对应档位）
 const FONT_SCORE: number = 48
 const FONT_SMALL: number = 12
+
+// 工程日志口径：文件顶层 const，标签取文件主体名
+const logger: Logger = new Logger('AnswerResultPage')
 
 @ComponentV2
 export struct AnswerResultPage {
@@ -114,7 +118,8 @@ export struct AnswerResultPage {
             .fontColor(CommonConstants.COLOR_PRIMARY)
             .fontSize(CommonConstants.FONT_BODY)
             .onClick(() => {
-              console.info('查看回顾')
+              // 项目 6 预留的占位实现：本次只换日志出口，不动按钮交互
+              logger.info('查看回顾')
             })
 
           // 重新刷题：渐变主按钮
