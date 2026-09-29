@@ -13,10 +13,34 @@ import { BackgroundMonitor } from '@zhititong/common'
 import { Logger } from '@zhititong/common'
 import { PersistenceV2, AppStorageV2 } from '@kit.ArkUI'
 import { BusinessError } from '@kit.BasicServicesKit'
+import { ApplicationStateChangeCallback } from '@kit.AbilityKit'
 import { ExamDetailViewModel } from '../viewModel/ExamDetailViewModel'
 
 // 工程日志口径：文件顶层 const，标签取文件主体名（struct 与 class 通吃、无实例开销）
 const logger: Logger = new Logger('ExamDetailPage')
+
+/**
+ * 应用前后台监听器：防作弊 Toast 的触发点。
+ * 说明：@Monitor 会在退后台瞬间（count 自增时）同步触发，此时 UI 已不可见，Toast 弹不出；
+ * NavDestination.onShown 在应用回前台时也不会触发。因此挂应用级
+ * applicationStateChange 监听，在 onApplicationForeground（回到前台）后再弹提示。
+ */
+class ForegroundWatcher extends ApplicationStateChangeCallback {
+  // 回前台时要执行的动作（由页面注入，避免 watcher 反向依赖 struct）
+  private onForegroundAction: () => void = () => {}
+
+  setAction(action: () => void): void {
+    this.onForegroundAction = action
+  }
+
+  onApplicationForeground(): void {
+    this.onForegroundAction()
+  }
+
+  onApplicationBackground(): void {
+    // 退后台无需处理：计数已由 EntryAbility.onBackground 上报
+  }
+}
 
 @ComponentV2
 export struct ExamDetailPage {
@@ -33,12 +57,31 @@ export struct ExamDetailPage {
   @Local monitor: BackgroundMonitor = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
     () => new BackgroundMonitor())!
 
+  // 应用前后台监听（aboutToAppear 注册 / aboutToDisappear 注销）
+  private foregroundWatcher: ForegroundWatcher = new ForegroundWatcher()
+
+  aboutToAppear(): void {
+    this.foregroundWatcher.setAction(() => {
+      this.notifySwitchCount()
+    })
+    const context = this.getUIContext().getHostContext()
+    if (context !== undefined) {
+      context.getApplicationContext().on('applicationStateChange', this.foregroundWatcher)
+    }
+  }
+
+  aboutToDisappear(): void {
+    const context = this.getUIContext().getHostContext()
+    if (context !== undefined) {
+      context.getApplicationContext().off('applicationStateChange', this.foregroundWatcher)
+    }
+  }
+
   /**
-   * 计数变化提示：切后台累计一次后，回到前台立即弹 Toast 提醒
-   * （monitoring 为 false 或计数为 0 时不打扰）
+   * 回到前台后弹切后台计数提示（仅考试进行中且已有切出记录时打扰）
+   * 弹出失败（如窗口未就绪）降级记 warn，不影响计数与考试流程
    */
-  @Monitor('monitor.count')
-  onSwitchCountChanged(): void {
+  private notifySwitchCount(): void {
     if (!this.monitor.monitoring || this.monitor.count <= 0) {
       return
     }
@@ -48,7 +91,6 @@ export struct ExamDetailPage {
         duration: 3000
       })
     } catch (e) {
-      // 提示弹不出来不该影响计数与考试流程：按工程规范降级记 warn 即可
       const error = e as BusinessError
       logger.warn(`切后台提示弹出失败：code=${error.code}, message=${error.message}`)
     }
@@ -213,10 +255,20 @@ export struct ExamDetailPage {
       .backgroundColor(CommonConstants.COLOR_BG_PAGE)
     }
     .hideTitleBar(true)
-    .onReady(() => {
-      // 每次导航进入只触发一次：开考即进入监视并清零计数
-      // 禁止用 onShown——应用从后台切回前台也会触发 onShown，会把刚累计的计数错误清零
+    .onReady((context: NavDestinationContext) => {
+      // onReady 每次导航进入只触发一次：取路由参数装载对应试卷 + 开考监视
+      // SDK 中 NavPathInfo.param 声明为 unknown（ArkTS 禁止 unknown 类型），故按契约强转为 string
+      const paperId = context.pathInfo?.param as string
+      this.viewModel.loadPaper(paperId === undefined ? '' : paperId)
       this.viewModel.startExam()
+    })
+    .onShown(() => {
+      // onShown 只在导航返回（pop 弹回）时触发，应用回前台不会触发：
+      // 交卷时监视器已 stop（monitoring=false），从结果页"重新刷题"pop 回本页
+      // 即视为重新开考——清零计数并重新进入监视
+      if (!this.monitor.monitoring) {
+        this.viewModel.startExam()
+      }
     })
   }
 }

@@ -101,6 +101,10 @@ export struct HomePage {
   // 三级导航：Home 域自持子栈（本章 Home 域详情走根栈，子栈预留）
   @Provider('homeStack') homeStack: NavPathStack = new NavPathStack()
 
+  // 沉浸式详情：跨层级直取根栈（EXAM_DETAIL 注册在 AppNavigation.RootRouter，
+  // homeStack 的域内路由表为空，push 详情页会白屏——与考卷列表页 ExamPaperRow 一致）
+  @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
+
   // 页面所有状态都在 ViewModel 上（@Local 持有实例）
   @Local viewModel: HomeViewModel = new HomeViewModel()
 
@@ -155,7 +159,8 @@ export struct HomePage {
                 item: item,
                 scoreColor: this.viewModel.getScoreColor(item),
                 onCardClick: () => {                            // 事件只转发：导航留在 View 层
-                  this.homeStack.pushPathByName(
+                  // 沉浸式详情：push 到根栈，盖住底部 Tab（子栈路由表未注册该页面）
+                  this.pageStack.pushPathByName(
                     this.viewModel.getExamDetailRoute(),
                     // 导航参数同样由 ViewModel 产出，View 不自行拼装业务参数
                     this.viewModel.getPaperRouteParam(item)

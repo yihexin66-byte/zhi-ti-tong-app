@@ -7,8 +7,8 @@
  *   3. 本文件零 UI 组件、零 @Builder、零导航栈操作（导航留在 View 层）
  *
  * 【职责边界】
- *   答题页全部业务状态集中于此：当前题号、单选选中项、多选选中项；
- *   选项选择、切题重置为纯逻辑方法（单测覆盖）；
+ *   答题页全部业务状态集中于此：当前试卷、当前题号、单选选中项、多选选中项；
+ *   按路由参数装载试卷、选项选择、切题重置为纯逻辑方法（单测覆盖）；
  *   提交后跳转结果页属于导航，由 View 层执行。
  *   切后台防作弊：开考/交卷时启停全局监视器（AppStorageV2 运行期状态）。
  *
@@ -17,15 +17,17 @@
  */
 import { BaseViewModel } from '@zhititong/common'
 import { Logger } from '@zhititong/common'
-import { MOCK_PAPER, MOCK_QUESTIONS } from '@zhititong/common'
+import { MOCK_PAPER, MOCK_PAPERS, MOCK_QUESTIONS } from '@zhititong/common'
 import { PaperInfo, QuestionItem } from '@zhititong/common'
 import { BackgroundMonitor, StateKeys } from '@zhititong/common'
 import { AppStorageV2 } from '@kit.ArkUI'
 
 @ObservedV2
 export class ExamDetailViewModel extends BaseViewModel {
-  // 试卷信息与题目列表（Mock 只读数据，非响应式）
-  readonly paper: PaperInfo = MOCK_PAPER
+  // 试卷信息（由路由参数按 id 从 Mock 卷库装载，@Trace 驱动标题区刷新）
+  @Trace paper: PaperInfo = MOCK_PAPER
+
+  // 题目列表（Mock 只读数据，非响应式；当前 Mock 卷库共用同一套题干）
   readonly questions: QuestionItem[] = MOCK_QUESTIONS
 
   // 当前题号（0 起）
@@ -55,6 +57,20 @@ export class ExamDetailViewModel extends BaseViewModel {
         () => new BackgroundMonitor())!
     }
     return this.monitorRef
+  }
+
+  /**
+   * 按试卷 id 装载试卷（由答题页 NavDestination.onReady 调用）；
+   * 参数缺失或 id 未命中时保持默认 Mock 卷，不中断开考流程
+   */
+  loadPaper(paperId: string): void {
+    if (paperId === '') {
+      return
+    }
+    const matched: PaperInfo[] = MOCK_PAPERS.filter((paper: PaperInfo) => paper.id === paperId)
+    if (matched.length > 0) {
+      this.paper = matched[0]
+    }
   }
 
   /**

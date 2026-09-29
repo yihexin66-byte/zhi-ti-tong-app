@@ -18,6 +18,17 @@ export default function backgroundMonitorTest(): void {
       monitor.start()
       expect(monitor.count).assertEqual(0)
     })
+    // 断言2b：stop 后重新 start（重新开考）——计数清零且恢复监视，
+    // 对应结果页"重新刷题"pop 回答题页时 onShown 重启监视的语义
+    it('should_restart_fresh_on_start_after_stop', 0, () => {
+      const monitor = new BackgroundMonitor()
+      monitor.start()
+      monitor.increase()
+      monitor.stop()
+      monitor.start()
+      expect(monitor.count).assertEqual(0)
+      expect(monitor.monitoring).assertTrue()
+    })
   })
 
   describe('backgroundMonitorIncreaseTest', () => {

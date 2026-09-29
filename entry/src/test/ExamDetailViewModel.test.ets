@@ -84,5 +84,22 @@ export default function examDetailViewModelTest() {
       expect(vm.getTypeLabel('MULTI')).assertEqual('多选题')
       expect(vm.getTypeLabel('UNKNOWN')).assertEqual('')
     })
+
+    // 常规：按路由参数 id 装载对应试卷（首页/列表页点击进入）
+    it('should_load_paper_by_route_id', 0, async () => {
+      const vm = new ExamDetailViewModel()
+      vm.loadPaper('1953001000000000004')
+      expect(vm.paper.paperName).assertEqual('Java 程序设计期末模拟卷 A')
+      expect(vm.paper.duration).assertEqual(60)
+    })
+
+    // 边界：参数缺失或 id 未命中时保持默认 Mock 卷，不中断开考流程
+    it('should_keep_default_paper_when_id_missing', 0, async () => {
+      const vm = new ExamDetailViewModel()
+      vm.loadPaper('')
+      expect(vm.paper.id).assertEqual('1953001000000000001')
+      vm.loadPaper('not-exist-id')
+      expect(vm.paper.id).assertEqual('1953001000000000001')
+    })
   })
 }

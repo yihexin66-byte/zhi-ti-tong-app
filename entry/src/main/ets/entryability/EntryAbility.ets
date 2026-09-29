@@ -1,9 +1,12 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window, PersistenceV2, AppStorageV2 } from '@kit.ArkUI';
-import { FontSetting, BackgroundMonitor, StateKeys } from '@zhititong/common';
+import { FontSetting, BackgroundMonitor, StateKeys, Logger } from '@zhititong/common';
 
 const DOMAIN = 0x0000;
+
+// 工程日志口径：文件顶层 const（切后台计数链路排查用）
+const logger: Logger = new Logger('EntryAbility');
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -51,7 +54,9 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
     // 应用切到后台：考试进行中则记一次（防作弊计数）
     // 是否计数由监视器按 monitoring 状态自行判断，Ability 不掺和业务规则
-    AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
-      () => new BackgroundMonitor())!.increase();
+    const monitor = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
+      () => new BackgroundMonitor())!;
+    monitor.increase();
+    logger.info(`切后台上报完成：monitoring=${monitor.monitoring}, count=${monitor.count}`);
   }
 }
