@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { MockKit, when, ArgumentMatchers } from '@ohos/hamock'
 import { ExamDetailViewModel } from '../main/ets/features/exam/viewModel/ExamDetailViewModel'
-import { AttemptInfo, ExamService } from '../main/ets/features/exam/service/ExamService'
+import { AttemptInfo, ExamService, TabSwitchResult } from '../main/ets/features/exam/service/ExamService'
 import { FIXTURE_ATTEMPT, FIXTURE_ATTEMPT_RESUMED, FIXTURE_SUBMIT_RESULT } from './Fixtures'
 
 /** 交卷请求的账本：交互断言用 */
@@ -10,9 +10,25 @@ class SubmitLedger {
   counts: number[] = []
 }
 
+/** 切屏上报的账本：交互断言用 */
+class SwitchLedger {
+  reported: number[] = []
+}
+
 /** 等一小段真实时间，让 tick 里"点火即忘"的异步交卷跑完 */
 function sleep(ms: number): Promise<void> {
   return new Promise<void>((resolve: () => void) => setTimeout(resolve, ms))
+}
+
+/** 切屏上报夹具：超限即裁决强制交卷 */
+function tabSwitchResult(tabSwitchCount: number, tabSwitchLimit: number,
+                         shouldAutoSubmit: boolean): TabSwitchResult {
+  const result: TabSwitchResult = {
+    tabSwitchCount: tabSwitchCount,
+    tabSwitchLimit: tabSwitchLimit,
+    shouldAutoSubmit: shouldAutoSubmit
+  }
+  return result
 }
 
 /** 造一个被 hamock 接管的假 ExamService：网络层被整体掐断 */
@@ -186,6 +202,122 @@ export default function examDetailViewModelTest() {
       await vm.startExam('1001')
       expect(vm.errorMessage).assertEqual('未登录，请先登录')
       expect(vm.loading).assertEqual(false)
+      vm.dispose()
+    })
+
+    // ===== 6-5：切屏上报——服务端裁决强制交卷，客户端只执行结果 =====
+    it('should_auto_submit_when_server_decides', 0, async () => {
+      const ledger = new SubmitLedger()
+      const service = new ExamService()
+      const mockKit = new MockKit()
+      when(mockKit.mockFunc(service, service.startExam))(ArgumentMatchers.any)
+        .afterReturn(Promise.resolve(FIXTURE_ATTEMPT))
+      when(mockKit.mockFunc(service, service.reportTabSwitch))(ArgumentMatchers.any)
+        .afterReturn(Promise.resolve(tabSwitchResult(4, 3, true)))
+      when(mockKit.mockFunc(service, service.submit))(ArgumentMatchers.any)
+        .afterAction((attemptId: string, submitType: string, count: number) => {
+          ledger.types.push(submitType)
+          ledger.counts.push(count)
+          return Promise.resolve(FIXTURE_SUBMIT_RESULT)
+        })
+      const vm = new ExamDetailViewModel(service)
+      await vm.startExam('1001')
+      await vm.onTabSwitch(4)
+      expect(ledger.types[0]).assertEqual('TAB_SWITCH')
+      expect(ledger.counts[0]).assertEqual(4)      // 切出次数随交卷一并上报
+      expect(vm.finishedAttemptId).assertEqual('5001')
+      vm.dispose()
+    })
+
+    // ===== 6-5：未超限时只记账提示，不交卷 =====
+    it('should_only_record_when_below_limit', 0, async () => {
+      const ledger = new SubmitLedger()
+      const switchLedger = new SwitchLedger()
+      const service = new ExamService()
+      const mockKit = new MockKit()
+      when(mockKit.mockFunc(service, service.startExam))(ArgumentMatchers.any)
+        .afterReturn(Promise.resolve(FIXTURE_ATTEMPT))
+      when(mockKit.mockFunc(service, service.reportTabSwitch))(ArgumentMatchers.any)
+        .afterAction((attemptId: string, count: number) => {
+          switchLedger.reported.push(count)
+          return Promise.resolve(tabSwitchResult(2, 3, false))
+        })
+      when(mockKit.mockFunc(service, service.submit))(ArgumentMatchers.any)
+        .afterAction((attemptId: string, submitType: string, count: number) => {
+          ledger.types.push(submitType)
+          return Promise.resolve(FIXTURE_SUBMIT_RESULT)
+        })
+      const vm = new ExamDetailViewModel(service)
+      await vm.startExam('1001')
+      await vm.onTabSwitch(2)
+      expect(switchLedger.reported[0]).assertEqual(2)     // 如实上报本地计数
+      expect(vm.serverTabSwitchCount).assertEqual(2)      // 服务端记账回填
+      expect(vm.tabSwitchLimit).assertEqual(3)
+      expect(ledger.types.length).assertEqual(0)          // 未超限不交卷
+      expect(vm.finishedAttemptId).assertEqual('')
+      vm.dispose()
+    })
+
+    // ===== 6-5：存疑标记翻转（V2 数组整体替换语义） =====
+    it('should_toggle_flag_on_current_question', 0, async () => {
+      const vm = new ExamDetailViewModel(createMockedService(FIXTURE_ATTEMPT))
+      await vm.startExam('1001')
+      expect(vm.isCurrentFlagged()).assertEqual(false)
+      vm.toggleFlag()
+      expect(vm.isCurrentFlagged()).assertEqual(true)
+      vm.toggleFlag()
+      expect(vm.isCurrentFlagged()).assertEqual(false)
+      vm.dispose()
+    })
+
+    // ===== 6-5：断点续考——存疑标记随 isFlagged 回填 =====
+    it('should_fill_flags_on_resume', 0, async () => {
+      const vm = new ExamDetailViewModel(createMockedService(FIXTURE_ATTEMPT_RESUMED))
+      await vm.startExam('1001')
+      expect(vm.isFlagged(1)).assertEqual(true)     // 第 2 题存疑
+      expect(vm.isFlagged(0)).assertEqual(false)
+      vm.dispose()
+    })
+
+    // 交互断言：存疑题的答案保存要带上 isFlagged，不能把标记冲掉
+    it('should_send_flag_along_with_answer', 0, async () => {
+      const flags: boolean[] = []
+      const service = new ExamService()
+      const mockKit = new MockKit()
+      when(mockKit.mockFunc(service, service.startExam))(ArgumentMatchers.any)
+        .afterReturn(Promise.resolve(FIXTURE_ATTEMPT_RESUMED))   // 第 2 题已存疑
+      when(mockKit.mockFunc(service, service.saveAnswer))(ArgumentMatchers.any)
+        .afterAction((attemptId: string, questionId: string, answer: string, isFlagged: boolean) => {
+          flags.push(isFlagged)
+          return Promise.resolve()
+        })
+      const vm = new ExamDetailViewModel(service)
+      await vm.startExam('1001')
+      vm.currentIndex = 1
+      vm.selectOption('B')
+      expect(flags[0]).assertEqual(true)
+      vm.dispose()
+    })
+
+    // 边界：答题卡跳题含边界保护
+    it('should_jump_to_index_with_bounds', 0, async () => {
+      const vm = new ExamDetailViewModel(createMockedService(FIXTURE_ATTEMPT))
+      await vm.startExam('1001')
+      vm.jumpTo(2)
+      expect(vm.currentIndex).assertEqual(2)
+      vm.jumpTo(99)
+      expect(vm.currentIndex).assertEqual(2)
+      vm.jumpTo(-1)
+      expect(vm.currentIndex).assertEqual(2)
+      vm.dispose()
+    })
+
+    // 统计：已作答数（答题卡面板摘要）
+    it('should_count_answered_questions', 0, async () => {
+      const vm = new ExamDetailViewModel(createMockedService(FIXTURE_ATTEMPT_RESUMED))
+      await vm.startExam('1001')
+      // 夹具续考场次：第 1 题答 A、第 3 题答 AD，共 2 题已答
+      expect(vm.getAnsweredCount()).assertEqual(2)
       vm.dispose()
     })
   })

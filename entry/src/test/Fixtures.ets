@@ -111,7 +111,8 @@ export const FIXTURE_ATTEMPT_RESUMED: AttemptInfo = {
       options: [
         { label: 'A', content: 'Image' }, { label: 'B', content: 'Text' },
         { label: 'C', content: 'Button' }, { label: 'D', content: 'Progress' }
-      ]
+      ],
+      isFlagged: true
     },
     {
       id: '2003', type: 'MULTI', score: 10,
