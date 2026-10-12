@@ -19,3 +19,7 @@ export { RequestConfig, HttpResult, Interceptor } from './src/main/ets/network/t
 export { TokenProvider } from './src/main/ets/network/interceptors';
 export { httpClient, setTokenProvider } from './src/main/ets/network/http';
 export { BaseService, ApiResponse } from './src/main/ets/base/BaseService';
+// 会话与持久化（6-2）
+export { PreferencesUtil } from './src/main/ets/utils/PreferencesUtil';
+export { SessionUser, SessionUserData } from './src/main/ets/session/SessionUser';
+export { SessionManager } from './src/main/ets/session/SessionManager';

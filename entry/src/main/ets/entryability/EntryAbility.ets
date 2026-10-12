@@ -1,7 +1,7 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window, PersistenceV2, AppStorageV2 } from '@kit.ArkUI';
-import { FontSetting, BackgroundMonitor, StateKeys, Logger } from '@zhititong/common';
+import { FontSetting, BackgroundMonitor, StateKeys, Logger, PreferencesUtil, SessionManager, setTokenProvider } from '@zhititong/common';
 
 const DOMAIN = 0x0000;
 
@@ -11,6 +11,12 @@ const logger: Logger = new Logger('EntryAbility');
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    // ① 注入上下文：PreferencesUtil 从此可读写磁盘（必须最先）
+    PreferencesUtil.init(this.context);
+    // ② 把上次会话从磁盘恢复到内存与运行态
+    SessionManager.loadFromDisk();
+    // ③ 激活 6-1 埋好的 TokenProvider 注入点——整条 Token 自动注入链路通电
+    setTokenProvider(() => SessionManager.getToken());
   }
 
   onDestroy(): void {

@@ -13,7 +13,7 @@
  *   Navigation(mineStack) 自持子栈 + MineRouter 域内路由注册（预留）。
  */
 import { CommonConstants } from '@zhititong/common'
-import { FontSetting, FONT_LEVELS, FontLevel, StateKeys } from '@zhititong/common'
+import { FontSetting, FONT_LEVELS, FontLevel, StateKeys, SessionManager, SessionUser } from '@zhititong/common'
 import { PersistenceV2 } from '@kit.ArkUI'
 import { MineViewModel } from '../viewModel/MineViewModel'
 
@@ -59,6 +59,9 @@ export struct MinePage {
 
   // 全局字号设置：connect 同一 key，拿到的是应用级单例（@Trace 变化即刷新本页）
   @Local font: FontSetting = PersistenceV2.connect(FontSetting, StateKeys.FONT_SETTING, () => new FontSetting())!
+
+  // 当前登录用户（AppStorageV2 运行态；与 SessionManager 是同一个实例）
+  @Local sessionUser: SessionUser = SessionManager.getUser()
 
   // 五档下拉选项：由 FONT_LEVELS 单一数据源派生（value 取档位文案）
   private fontOptions: SelectOption[] = FONT_LEVELS.map((level: FontLevel): SelectOption => {
@@ -112,7 +115,7 @@ export struct MinePage {
 
           // 右侧：用户名 + 个性签名（数据来自 ViewModel）
           Column() {
-            Text(this.viewModel.user.nickname)
+            Text(this.sessionUser.username)
               .fontSize(CommonConstants.FONT_SUBTITLE + this.font.fontSize)  // 基准 18 + 全局偏移
               .fontColor(CommonConstants.COLOR_TEXT_MAIN)
               .fontWeight(FontWeight.Bold)                 // 加粗
@@ -180,6 +183,8 @@ export struct MinePage {
           .fontColor(CommonConstants.COLOR_ERROR)           // 红色字 #F44336
           .fontSize(CommonConstants.FONT_BODY)
           .onClick(() => {
+            // 先清登录态（内存+运行态立即生效，磁盘异步清理），再清根栈回登录页
+            SessionManager.logout()
             // 导航留在 View 层：清空根栈，栈空后显示 Navigation 的内容页，即登录页——登出闭环
             this.pageStack.clear()
           })

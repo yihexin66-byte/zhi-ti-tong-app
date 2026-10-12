@@ -2,4 +2,5 @@
 export class StateKeys {
   static readonly FONT_SETTING: string = 'font_setting'
   static readonly BACKGROUND_MONITOR: string = 'background_monitor'
+  static readonly SESSION_USER: string = 'session_user'
 }

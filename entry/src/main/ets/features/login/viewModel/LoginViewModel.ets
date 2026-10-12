@@ -1,10 +1,15 @@
 /**
  * 登录/注册 ViewModel：业务逻辑与状态管理，零 UI
+ *
+ * 【数据来源】真实后端（LoginService → BaseService → httpClient）；
+ * 校验三连保留为联网前置：挡住"不必发请求就能判死"的输入。
  */
 import { BaseViewModel } from '@zhititong/common'
 import { Result } from '@zhititong/common'
 import { ValidationUtil } from '@zhititong/common'
+import { SessionManager } from '@zhititong/common'
 import { LoginResponseModel, UserInfoModel } from '../model/LoginResponseModel'
+import { LoginService } from '../service/LoginService'
 
 @ObservedV2
 export class LoginViewModel extends BaseViewModel {
@@ -19,8 +24,11 @@ export class LoginViewModel extends BaseViewModel {
   // 登录成功后的用户信息
   @Trace userInfo?: UserInfoModel
 
+  // 登录服务（6-1 基础设施的第一个业务消费者）
+  private loginService: LoginService = new LoginService()
+
   /**
-   * 提交登录或注册（Mock 验证，项目 6 换网络请求时 View 层零改动）
+   * 提交登录或注册：真实请求打到后端，返回类型与 Mock 时代一致（View 层零改动）
    */
   async submit(): Promise<Result<LoginResponseModel>> {
     // 1. 清错误
@@ -54,82 +62,47 @@ export class LoginViewModel extends BaseViewModel {
     this.setLoading(true)
 
     try {
-      // 6. 模拟网络延迟
-      await this.delay(1000)
-
-      let result: Result<LoginResponseModel>
-
+      // 注册流程：先注册（后端不返回 token），成功后走下面同一条登录流程
       if (this.isReg) {
-        // 注册流程：注册成功后自动登录
-        result = this.mockRegisterCheck()
-        if (result.ok) {
-          this.logger.info(`注册成功，自动登录：${this.username}`)
-          result = this.mockLoginCheck(true)
-        }
-      } else {
-        result = this.mockLoginCheck(false)
+        await this.loginService.register({
+          username: this.username,
+          password: this.password,
+          confirmPassword: this.confirmPwd
+        })
+        this.logger.info(`注册成功，自动登录：${this.username}`)
       }
 
-      if (result.ok) {
-        this.userInfo = result.value?.userInfo
-        this.logger.info(`${this.isReg ? '注册并登录' : '登录'}成功：${this.userInfo?.username}`)
-      } else {
-        this.setError(result.errorMessage ?? '操作失败')
-      }
+      // 登录：真实请求打到后端，拿 token + 用户信息
+      const login = await this.loginService.login({
+        username: this.username,
+        password: this.password
+      })
 
-      return result
-    } catch (e) {
-      const errorMsg = '操作异常，请稍后重试'
-      this.setError(errorMsg)
-      this.logger.error(errorMsg)
-      return Result.fail(-1, errorMsg)
-    } finally {
-      // 7. 退出加载态
-      this.setLoading(false)
-    }
-  }
+      // 会话落袋：token 进 Preferences（凭证），用户信息进 AppStorageV2（运行态）
+      await SessionManager.save(login.token, login.userInfo)
 
-  /**
-   * Mock 登录验证：固定账号 admin / 123456；
-   * 注册后自动登录时（justRegistered）直接放行
-   */
-  private mockLoginCheck(justRegistered: boolean): Result<LoginResponseModel> {
-    const passed = justRegistered ||
-      (this.username === 'admin' && this.password === '123456')
-
-    if (passed) {
+      // 构造给 View 的业务模型（返回类型不变，View 层零改动）
       const userInfo = new UserInfoModel()
-      userInfo.id = justRegistered ? `${Date.now()}` : '1'
-      userInfo.username = this.username
-      userInfo.nickname = justRegistered ? this.username : '管理员'
+      userInfo.id = login.userInfo.id
+      userInfo.username = login.userInfo.username
+      this.userInfo = userInfo
 
       const response = new LoginResponseModel()
       response.success = true
       response.message = '登录成功'
       response.userInfo = userInfo
 
+      this.logger.info(`${this.isReg ? '注册并登录' : '登录'}成功：${login.userInfo.username}`)
       return Result.ok<LoginResponseModel>(response)
+    } catch (e) {
+      // BaseService 把后端 message 原样抛上来（如"账号或密码错误""账号已存在"），直达 UI
+      const errorMsg = (e as Error).message
+      this.setError(errorMsg)
+      this.logger.error(`提交失败：${errorMsg}`)
+      return Result.fail(-1, errorMsg)
+    } finally {
+      // 6. 退出加载态
+      this.setLoading(false)
     }
-    return Result.fail(-1, '用户名或密码错误')
-  }
-
-  /**
-   * Mock 注册验证：admin 视为已存在
-   */
-  private mockRegisterCheck(): Result<LoginResponseModel> {
-    if (this.username === 'admin') {
-      return Result.fail(-1, '用户名已存在')
-    }
-    const response = new LoginResponseModel()
-    response.success = true
-    response.message = '注册成功'
-    return Result.ok<LoginResponseModel>(response)
-  }
-
-  /**
-   * 模拟网络延迟
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise<void>(resolve => setTimeout(resolve, ms))
   }
 }
