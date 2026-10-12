@@ -1,0 +1,13 @@
+{
+  "mcp": {
+    "exam-api": {
+      "type": "local",
+      "command": ["npx", "-y", "dkmaker-mcp-rest-api"],
+      "environment": {
+        "REST_BASE_URL": "http://127.0.0.1:8080",
+        "REST_RESPONSE_SIZE_LIMIT": "5000"
+      },
+      "enabled": true
+    }
+  }
+}
