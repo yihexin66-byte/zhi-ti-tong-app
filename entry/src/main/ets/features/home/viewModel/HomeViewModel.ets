@@ -24,7 +24,7 @@ import { BannerModel, RecommendedPaperItem } from '../model/BannerModel'
 @ObservedV2
 export class HomeViewModel extends BaseViewModel {
   // 推荐试卷张数
-  private static readonly RECOMMEND_COUNT: number = 4
+  private static readonly RECOMMEND_COUNT: number = 6
 
   // 顶部轮播数据（本模块专属模型）
   @Trace banners: BannerModel[] = []
@@ -50,7 +50,7 @@ export class HomeViewModel extends BaseViewModel {
       this.logger.info(`推荐试卷加载完成，共 ${papers.length} 套`)
       return Result.ok<RecommendedPaperItem[]>(papers)
     } catch (e) {
-      const errorMsg = '推荐试卷加载失败，请稍后重试'
+      const errorMsg = '推荐试卷加载失败，请检查网络后重试'
       this.setError(errorMsg)
       this.logger.error(errorMsg)
       return Result.fail<RecommendedPaperItem[]>(-1, errorMsg)
