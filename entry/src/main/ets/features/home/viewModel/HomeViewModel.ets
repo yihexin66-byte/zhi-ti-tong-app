@@ -25,7 +25,7 @@ import { PaperService } from '../../exam/service/PaperService'
 @ObservedV2
 export class HomeViewModel extends BaseViewModel {
   // 推荐试卷张数
-  private static readonly RECOMMEND_COUNT: number = 4
+  private static readonly RECOMMEND_COUNT: number = 6
 
   // 顶部轮播数据（本模块专属模型）
   @Trace banners: BannerModel[] = []
@@ -56,7 +56,8 @@ export class HomeViewModel extends BaseViewModel {
       this.logger.info(`推荐试卷加载成功：${items.length} 张`)
       return Result.ok<RecommendedPaperItem[]>(items)
     } catch (e) {
-      const errorMsg = (e as Error).message || '推荐试卷加载失败，请稍后重试'
+      // 联网重写的主体逻辑保留（后端 message 优先），master 的新失败文案吸收为兜底
+      const errorMsg = (e as Error).message || '推荐试卷加载失败，请检查网络后重试'
       this.setError(errorMsg)
       this.logger.error(`推荐试卷加载失败：${errorMsg}`)
       return Result.fail<RecommendedPaperItem[]>(-1, errorMsg)
