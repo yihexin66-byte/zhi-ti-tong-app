@@ -1,6 +1,7 @@
 // 登录/注册页（View 层）：零业务逻辑，全部委托 LoginViewModel
 import { CommonConstants } from '@zhititong/common'
 import { RouteConstants } from '@zhititong/common'
+import { SessionManager, SessionUser } from '@zhititong/common'
 import { LoginViewModel } from '../viewModel/LoginViewModel'
 
 @ComponentV2
@@ -9,6 +10,29 @@ export struct LoginPage {
 
   // 持有 ViewModel 实例：页面所有状态都在它身上
   @Local viewModel: LoginViewModel = new LoginViewModel()
+
+  // 连上全局会话：恢复会话（冷启动）与登录成功（手动）都会点亮 session.loggedIn 这盏灯
+  @Local session: SessionUser = SessionManager.getUser()
+
+  // 冷启动：loadFromDisk 先于页面构建时灯早已亮，aboutToAppear 补查一次
+  aboutToAppear(): void {
+    this.tryEnterMain()
+  }
+
+  // 手动登录成功：灯在页面存续期间亮起，@Monitor 应声而动
+  @Monitor('session.loggedIn')
+  onLoggedIn(): void {
+    this.tryEnterMain()
+  }
+
+  /**
+   * 进入主页的唯一出口：两个钩子一前一后合围"灯比页面早亮/晚亮"两种时序
+   */
+  private tryEnterMain(): void {
+    if (this.session.loggedIn) {
+      this.pageStack.replacePathByName(RouteConstants.MAIN, null)
+    }
+  }
 
   build() {
     NavDestination() {
@@ -78,10 +102,8 @@ export struct LoginPage {
             .enabled(!this.viewModel.loading)
             .onClick(async () => {
               // View 不做任何判断，只转发事件、消费结果
-              const res = await this.viewModel.submit()
-              if (res.ok) {
-                this.pageStack.replacePathByName(RouteConstants.MAIN, null)
-              }
+              // 进入主页不再在这里手写跳转：登录成功后 session.loggedIn 亮灯，@Monitor 统一分流
+              await this.viewModel.submit()
             })
 
           // 登录/注册切换

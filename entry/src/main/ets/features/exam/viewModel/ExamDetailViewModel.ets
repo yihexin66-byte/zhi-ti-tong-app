@@ -16,7 +16,6 @@
  */
 import { BaseViewModel, Logger, QuestionItem } from '@zhititong/common'
 import { ExamService } from '../service/ExamService'
-
 @ObservedV2
 export class ExamDetailViewModel extends BaseViewModel {
   // 场次号（开考后由服务端下发）
@@ -36,6 +35,15 @@ export class ExamDetailViewModel extends BaseViewModel {
 
   /** 交卷完成信号：结果页导航的唯一出口（空串为未交卷） */
   @Trace finishedAttemptId: string = ''
+
+  /** 存疑标记的题目 id 列表（V2 响应式：整体替换才触发刷新） */
+  @Trace flaggedIds: string[] = []
+
+  /** 服务端记账的切出次数（上报响应回填，供回前台提示用） */
+  @Trace serverTabSwitchCount: number = 0
+
+  /** 服务端下发的切出上限（展示用） */
+  @Trace tabSwitchLimit: number = 0
 
   /** 唯一事实源：questionId → 已选答案（MULTI 为无序标签串，如 "ACD"） */
   private answers: Map<string, string> = new Map()
@@ -70,9 +78,13 @@ export class ExamDetailViewModel extends BaseViewModel {
       this.remainingSeconds = info.remainingSeconds
       this.currentIndex = 0
       this.answers.clear()
+      this.flaggedIds = []
       for (const q of info.questions) {
         if (q.myAnswer !== undefined && q.myAnswer !== null && q.myAnswer !== '') {
           this.answers.set(q.id, q.myAnswer)   // 断点续考：答案回填
+        }
+        if (q.isFlagged === true) {
+          this.flaggedIds = [...this.flaggedIds, q.id]   // 断点续考：存疑标记回填（跨进程保持）
         }
       }
       this.startTimer()
@@ -204,14 +216,104 @@ export class ExamDetailViewModel extends BaseViewModel {
   }
 
   /**
-   * 实时保存单题答案（失败仅记日志：不阻塞作答，下次点选会重发）
+   * 实时保存单题答案（isFlagged 随答案一起透传，避免把存疑标记冲掉）
+   * 失败仅记日志：不阻塞作答，下次点选会重发
    */
   private persistAnswer(questionId: string, answer: string): void {
     if (this.attemptId === '') {
       return
     }
-    this.examService.saveAnswer(this.attemptId, questionId, answer)
+    this.examService.saveAnswer(this.attemptId, questionId, answer, this.isFlaggedById(questionId))
       .catch((e: Error) => this.logger.warn(`答案保存失败：${e.message}`))
+  }
+
+  /**
+   * 切屏上报：客户端如实上报本地计数，服务端独揽裁决
+   * @param count 本地累计切出次数（由页面 @Monitor 监视 monitor.count 传入）
+   */
+  async onTabSwitch(count: number): Promise<void> {
+    if (this.attemptId === '') {
+      return
+    }
+    this.tabSwitchCount = count
+    try {
+      const result = await this.examService.reportTabSwitch(this.attemptId, count)
+      this.serverTabSwitchCount = result.tabSwitchCount
+      this.tabSwitchLimit = result.tabSwitchLimit
+      this.logger.info(
+        `切屏上报：本地 ${count} 次，服务端记账 ${result.tabSwitchCount} 次，强制交卷=${result.shouldAutoSubmit}`)
+      if (result.shouldAutoSubmit) {
+        // 裁决权在服务端：客户端只执行结果
+        await this.submit('TAB_SWITCH')
+      }
+    } catch (e) {
+      this.logger.warn(`切屏上报失败：${(e as Error).message}`)
+    }
+  }
+
+  /**
+   * 某个题目 id 是否被标记存疑
+   */
+  isFlaggedById(questionId: string): boolean {
+    return this.flaggedIds.indexOf(questionId) !== -1
+  }
+
+  /**
+   * 当前题是否已标记存疑
+   */
+  isCurrentFlagged(): boolean {
+    if (this.questions.length === 0) {
+      return false
+    }
+    return this.isFlaggedById(this.questions[this.currentIndex].id)
+  }
+
+  /**
+   * 切换当前题的存疑标记（V2 响应式细节：数组整体替换才触发刷新）
+   */
+  toggleFlag(): void {
+    if (this.questions.length === 0) {
+      return
+    }
+    const questionId = this.questions[this.currentIndex].id
+    const flagged = this.isFlaggedById(questionId)
+    if (flagged) {
+      this.flaggedIds = this.flaggedIds.filter((id: string) => id !== questionId)
+    } else {
+      this.flaggedIds = [...this.flaggedIds, questionId]
+    }
+    this.persistFlag(questionId, !flagged)
+  }
+
+  /**
+   * 把存疑状态随答案一起上报（存疑跨进程保持的机制所在）
+   */
+  private persistFlag(questionId: string, isFlagged: boolean): void {
+    if (this.attemptId === '') {
+      return
+    }
+    const answer = this.answers.get(questionId) ?? ''
+    this.examService.saveAnswer(this.attemptId, questionId, answer, isFlagged)
+      .catch((e: Error) => this.logger.warn(`存疑标记保存失败：${e.message}`))
+  }
+
+  /**
+   * 答题卡跳题（含边界保护）
+   */
+  jumpTo(index: number): void {
+    if (index >= 0 && index < this.questions.length) {
+      this.currentIndex = index
+    }
+  }
+
+  /**
+   * 指定题号是否被标记存疑（答题卡着色用）
+   */
+  isFlagged(index: number): boolean {
+    if (index < 0 || index >= this.questions.length) {
+      return false
+    }
+    return this.isFlaggedById(this.questions[index].id)
   }
 
   /**
@@ -233,6 +335,19 @@ export class ExamDetailViewModel extends BaseViewModel {
     }
     const answer = this.answers.get(this.questions[index].id)
     return answer !== undefined && answer !== ''
+  }
+
+  /**
+   * 已作答题数（答题卡摘要与面板统计用）
+   */
+  getAnsweredCount(): number {
+    let count: number = 0
+    for (let i = 0; i < this.questions.length; i++) {
+      if (this.isAnswered(i)) {
+        count++
+      }
+    }
+    return count
   }
 
   /**

@@ -1,13 +1,14 @@
 // 考试模式答题页（View 层）：展示试卷信息、题目内容及选项，支持上下题切换
 //
 // 【分层职责（View 层）】
-//   零业务判断：题号、选中态、题型文案、倒计时文本全部来自 ExamDetailViewModel；
-//   事件只转发：选项点击 → vm.selectOption，切题 → vm.prevQuestion / vm.nextQuestion；
+//   零业务判断：题号、选中态、题型文案、倒计时文本、已答/存疑判定全部来自 ExamDetailViewModel；
+//   事件只转发：选项点击 → vm.selectOption，切题 → vm.prevQuestion / vm.nextQuestion，
+//              标记 → vm.toggleFlag，答题卡点号 → vm.jumpTo，切屏 → vm.onTabSwitch；
 //   导航留在本层，且只有一个出口：@Monitor 盯着 finishedAttemptId 这盏灯，
 //   灯亮则 replacePathByName 跳结果页（用 replace 而非 push，交卷后不允许返回答题页）。
 import { CommonConstants } from '@zhititong/common'
 import { RouteConstants } from '@zhititong/common'
-import { OptionItem } from '@zhititong/common'
+import { OptionItem, QuestionItem } from '@zhititong/common'
 import { formatCountdown } from '@zhititong/common'
 import { FontSetting, StateKeys } from '@zhititong/common'
 import { BackgroundMonitor } from '@zhititong/common'
@@ -19,6 +20,9 @@ import { ExamDetailViewModel } from '../viewModel/ExamDetailViewModel'
 
 // 工程日志口径：文件顶层 const，标签取文件主体名（struct 与 class 通吃、无实例开销）
 const logger: Logger = new Logger('ExamDetailPage')
+
+// 答题卡格子尺寸（面板内五列排布）
+const CARD_CELL_SIZE: number = 48
 
 /**
  * 应用前后台监听器：防作弊 Toast 的触发点。
@@ -57,6 +61,9 @@ export struct ExamDetailPage {
   // 切后台监视器：与 EntryAbility connect 同一个 key、同一个实例
   @Local monitor: BackgroundMonitor = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
     () => new BackgroundMonitor())!
+
+  // 答题卡半模态面板开合
+  @Local showCard: boolean = false
 
   // 应用前后台监听（aboutToAppear 注册 / aboutToDisappear 注销）
   private foregroundWatcher: ForegroundWatcher = new ForegroundWatcher()
@@ -101,6 +108,95 @@ export struct ExamDetailPage {
     } catch (e) {
       const error = e as BusinessError
       logger.warn(`切后台提示弹出失败：code=${error.code}, message=${error.message}`)
+    }
+  }
+
+  /**
+   * 答题卡格子底色：橙=存疑 / 绿=已答 / 灰=未答（判定全部来自 ViewModel）
+   */
+  private cardBackground(index: number): string {
+    if (this.viewModel.isFlagged(index)) {
+      return CommonConstants.COLOR_WARN
+    }
+    if (this.viewModel.isAnswered(index)) {
+      return CommonConstants.COLOR_SUCCESS
+    }
+    return CommonConstants.COLOR_TEXT_HINT
+  }
+
+  // 答题卡面板（bindSheet 半模态）：Grid 渲染全卷题号，点击直达该题
+  @Builder
+  AnswerCardSheet() {
+    Column({ space: CommonConstants.SPACE_M }) {
+      Row() {
+        Text('答题卡')
+          .fontSize(CommonConstants.FONT_SUBTITLE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+        Blank()
+        Text(`已答 ${this.viewModel.getAnsweredCount()}/${this.viewModel.questions.length}`)
+          .fontSize(CommonConstants.FONT_CAPTION)
+          .fontColor(CommonConstants.COLOR_TEXT_SUB)
+      }
+      .width('100%')
+
+      Grid() {
+        ForEach(this.viewModel.questions, (question: QuestionItem, index: number) => {
+          GridItem() {
+            Column() {
+              Text(`${index + 1}`)
+                .fontSize(CommonConstants.FONT_BODY)
+                .fontColor(Color.White)
+                .fontWeight(FontWeight.Bold)
+            }
+            .width(CARD_CELL_SIZE)
+            .height(CARD_CELL_SIZE)
+            .justifyContent(FlexAlign.Center)
+            .backgroundColor(this.cardBackground(index))
+            .borderRadius(6)
+            // 蓝框=当前题
+            .borderWidth(index === this.viewModel.currentIndex ? 2 : 0)
+            .borderColor(CommonConstants.COLOR_PRIMARY)
+            .borderStyle(BorderStyle.Solid)
+            .onClick(() => {
+              // 事件只转发：跳题（含边界保护）在 ViewModel
+              this.viewModel.jumpTo(index)
+              this.showCard = false
+            })
+          }
+        }, (question: QuestionItem) => question.id)
+      }
+      .columnsTemplate('1fr 1fr 1fr 1fr 1fr')
+      .rowsGap(CommonConstants.SPACE_M)
+      .columnsGap(CommonConstants.SPACE_M)
+      .width('100%')
+      .layoutWeight(1)
+
+      // 图例：四态对照
+      Row({ space: CommonConstants.SPACE_M }) {
+        this.LegendItem(CommonConstants.COLOR_SUCCESS, '已答')
+        this.LegendItem(CommonConstants.COLOR_WARN, '存疑')
+        this.LegendItem(CommonConstants.COLOR_TEXT_HINT, '未答')
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
+    }
+    .width('100%')
+    .height('100%')
+    .padding(CommonConstants.SPACE_M)
+  }
+
+  @Builder
+  LegendItem(color: string, label: string) {
+    Row({ space: 4 }) {
+      Column()
+        .width(12)
+        .height(12)
+        .backgroundColor(color)
+        .borderRadius(3)
+      Text(label)
+        .fontSize(CommonConstants.FONT_CAPTION)
+        .fontColor(CommonConstants.COLOR_TEXT_SUB)
     }
   }
 
@@ -239,12 +335,18 @@ export struct ExamDetailPage {
                 this.viewModel.nextQuestion()
               })
 
-            Button('标记存疑')
+            // 标记存疑：已存疑时按钮换文案与强调色（状态由 ViewModel 判定）
+            Button(this.viewModel.isCurrentFlagged() ? '已存疑' : '标记存疑')
               .type(ButtonType.Normal)
               .layoutWeight(1)
-              .backgroundColor(CommonConstants.COLOR_TEXT_HINT)
-              .fontColor(CommonConstants.COLOR_WARN)
+              .backgroundColor(this.viewModel.isCurrentFlagged()
+                ? CommonConstants.COLOR_WARN : CommonConstants.COLOR_TEXT_HINT)
+              .fontColor(this.viewModel.isCurrentFlagged() ? Color.White : CommonConstants.COLOR_WARN)
               .fontSize(CommonConstants.FONT_CAPTION)
+              .onClick(() => {
+                // 事件只转发：状态翻转与上报在 ViewModel
+                this.viewModel.toggleFlag()
+              })
 
             Button('答题卡')
               .type(ButtonType.Normal)
@@ -252,6 +354,9 @@ export struct ExamDetailPage {
               .backgroundColor(CommonConstants.COLOR_TEXT_HINT)
               .fontColor(CommonConstants.COLOR_TEXT_MAIN)
               .fontSize(CommonConstants.FONT_CAPTION)
+              .onClick(() => {
+                this.showCard = true
+              })
           }
           .width('100%')
 
@@ -277,6 +382,12 @@ export struct ExamDetailPage {
       .width('100%')
       .height('100%')
       .backgroundColor(CommonConstants.COLOR_BG_PAGE)
+      // 答题卡半模态面板
+      .bindSheet($$this.showCard, this.AnswerCardSheet(), {
+        height: SheetSize.MEDIUM,
+        dragBar: true,
+        showClose: true
+      })
     }
     .hideTitleBar(true)
     .onReady((context: NavDestinationContext) => {
@@ -293,6 +404,14 @@ export struct ExamDetailPage {
   onFinished(): void {
     if (this.viewModel.finishedAttemptId !== '') {
       this.pageStack.replacePathByName(RouteConstants.ANSWER_RESULT, this.viewModel.finishedAttemptId)
+    }
+  }
+
+  // 切屏计数增长 → 如实上报给后端，由服务端裁决；服务端判"强制交卷"则立即交卷
+  @Monitor('monitor.count')
+  onSwitchCountChanged(): void {
+    if (this.monitor.count > 0) {
+      this.viewModel.onTabSwitch(this.monitor.count)
     }
   }
 }

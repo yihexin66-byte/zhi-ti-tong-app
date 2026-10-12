@@ -59,11 +59,30 @@ export interface StartExamRequest {
 export interface SaveAnswerRequest {
   questionId: string
   answer: string
+  isFlagged: boolean
 }
 
 export interface SubmitRequest {
   submitType: string                // MANUAL / TIMEOUT / TAB_SWITCH
   tabSwitchCount: number
+}
+
+/**
+ * 切屏上报请求（实测定稿）：字段名为 tabSwitchCount，客户端上报"本场累计次数"。
+ * 【契约坑】教材稿写作 count，实测后端只认 tabSwitchCount——读契约要逐字，动手前先实测。
+ */
+export interface TabSwitchRequest {
+  tabSwitchCount: number
+}
+
+/**
+ * 切屏上报响应：服务端裁决结果
+ * 【契约坑】教材稿写作 maxTabSwitch，实测字段为 tabSwitchLimit。
+ */
+export interface TabSwitchResult {
+  tabSwitchCount: number            // 服务端记账的累计次数
+  tabSwitchLimit: number            // 本卷允许的上限
+  shouldAutoSubmit: boolean         // 裁决：是否立即强制交卷
 }
 
 export class ExamService extends BaseService {
@@ -73,10 +92,20 @@ export class ExamService extends BaseService {
     return this.postJson<AttemptInfo>('/api/exam/attempts', req)
   }
 
-  /** 实时保存单题答案 */
-  saveAnswer(attemptId: string, questionId: string, answer: string): Promise<void> {
-    const req: SaveAnswerRequest = { questionId: questionId, answer: answer }
+  /** 实时保存单题答案（isFlagged 随答案一起透传：存疑标记跨进程保持） */
+  saveAnswer(attemptId: string, questionId: string, answer: string, isFlagged: boolean): Promise<void> {
+    const req: SaveAnswerRequest = {
+      questionId: questionId,
+      answer: answer,
+      isFlagged: isFlagged
+    }
     return this.putJson<void>(`/api/exam/attempts/${attemptId}/answer`, req)
+  }
+
+  /** 切屏上报：客户端如实上报，服务端独揽裁决 */
+  reportTabSwitch(attemptId: string, tabSwitchCount: number): Promise<TabSwitchResult> {
+    const req: TabSwitchRequest = { tabSwitchCount: tabSwitchCount }
+    return this.putJson<TabSwitchResult>(`/api/exam/attempts/${attemptId}/tab-switch`, req)
   }
 
   /** 交卷判分 */
