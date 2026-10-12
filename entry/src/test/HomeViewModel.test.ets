@@ -15,12 +15,12 @@ function createMockedService(): PaperService {
 
 export default function homeViewModelTest() {
   describe('homeViewModelTest', () => {
-    // 常规：加载后推荐位数量为 4（HomeViewModel.RECOMMEND_COUNT）
-    it('should_load_four_recommend_papers', 0, async () => {
+    // 常规：加载后推荐位数量为 6（产品需求已从 4 张扩到 6 张，断言随需求更新）
+    it('should_load_six_recommend_papers', 0, async () => {
       const vm = new HomeViewModel(createMockedService())
       const res = await vm.loadRecommendPapers()
       expect(res.ok).assertEqual(true)
-      expect(vm.recommendPapers.length).assertEqual(4)
+      expect(vm.recommendPapers.length).assertEqual(6)
     })
 
     // 隐含约定：推荐结果全部来自夹具池（不多不少，抽取不凭空造数据）
@@ -35,6 +35,17 @@ export default function homeViewModelTest() {
         }
       }
       expect(allFromFixture).assertEqual(true)
+    })
+
+    // 契约语义：失败兜底文案取产品新版（master 热修口径），后端 message 仍优先
+    it('should_use_product_fallback_text_on_failure', 0, async () => {
+      const service = new PaperService()
+      const mockKit = new MockKit()
+      when(mockKit.mockFunc(service, service.getPapers))(ArgumentMatchers.any)
+        .afterAction(() => Promise.reject(new Error('')))
+      const vm = new HomeViewModel(service)
+      await vm.loadRecommendPapers()
+      expect(vm.errorMessage).assertEqual('推荐试卷加载失败，请检查网络后重试')
     })
 
     // 派生展示态：考过（bestScore > 0）显示"最好 X 分"，没考过显示"未考"
