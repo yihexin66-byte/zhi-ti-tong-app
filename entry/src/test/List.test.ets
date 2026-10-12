@@ -6,6 +6,7 @@ import loginViewModelTest from './LoginViewModel.test'
 import homeViewModelTest from './HomeViewModel.test'
 import subjectViewModelTest from './SubjectViewModel.test'
 import examListViewModelTest from './ExamListViewModel.test'
+import paperServiceTest from './PaperService.test'
 import examDetailViewModelTest from './ExamDetailViewModel.test'
 import resultViewModelTest from './ResultViewModel.test'
 import mineViewModelTest from './MineViewModel.test'
@@ -20,6 +21,7 @@ export default function testsuite() {
   homeViewModelTest()
   subjectViewModelTest()
   examListViewModelTest()
+  paperServiceTest()
   examDetailViewModelTest()
   resultViewModelTest()
   mineViewModelTest()
