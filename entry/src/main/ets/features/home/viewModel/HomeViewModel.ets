@@ -8,18 +8,19 @@
  *   4. 本文件零 UI 组件、零 @Builder、零导航栈操作（导航留在 View 层）
  *
  * 【数据来源】
- *   Mock 数据只来自 common/mock（MOCK_PAPERS），模块内不新造业务数据；
+ *   真实后端（PaperService → BaseService → httpClient）；
  *   随机抽取复用 common/utils/PaperUtils 的纯函数。
+ *   Service 经构造器注入：日常 new HomeViewModel() 无感知，单测可塞入假 Service。
  */
 import { BaseViewModel } from '@zhititong/common'
 import { Result } from '@zhititong/common'
 import { CommonConstants } from '@zhititong/common'
 import { RouteConstants } from '@zhititong/common'
 import { Logger } from '@zhititong/common'
-import { MOCK_PAPERS } from '@zhititong/common'
 import { PaperInfo } from '@zhititong/common'
 import { getRandomPapers } from '@zhititong/common'
 import { BannerModel, RecommendedPaperItem } from '../model/BannerModel'
+import { PaperService } from '../../exam/service/PaperService'
 
 @ObservedV2
 export class HomeViewModel extends BaseViewModel {
@@ -32,27 +33,32 @@ export class HomeViewModel extends BaseViewModel {
   // 推荐试卷列表（含派生展示态）
   @Trace recommendPapers: RecommendedPaperItem[] = []
 
-  constructor() {
+  private paperService: PaperService
+
+  constructor(service: PaperService = new PaperService()) {
     super()
     this.logger = new Logger('[HomeViewModel]')
+    this.paperService = service
     this.banners = this.buildBanners()
   }
 
   /**
-   * 加载推荐试卷（首屏数据入口：当前走 Mock，项目 6 换网络请求时 View 层零改动）
+   * 加载推荐试卷（真实接口 + 随机抽取）
    */
   async loadRecommendPapers(): Promise<Result<RecommendedPaperItem[]>> {
     this.clearError()
     this.setLoading(true)
     try {
-      const papers = this.buildRecommendedPapers()
-      this.recommendPapers = papers
-      this.logger.info(`推荐试卷加载完成，共 ${papers.length} 套`)
-      return Result.ok<RecommendedPaperItem[]>(papers)
+      const all = await this.paperService.getPapers()
+      const papers = getRandomPapers(all, HomeViewModel.RECOMMEND_COUNT)
+      const items = this.buildRecommendedPapers(papers)
+      this.recommendPapers = items
+      this.logger.info(`推荐试卷加载成功：${items.length} 张`)
+      return Result.ok<RecommendedPaperItem[]>(items)
     } catch (e) {
-      const errorMsg = '推荐试卷加载失败，请稍后重试'
+      const errorMsg = (e as Error).message || '推荐试卷加载失败，请稍后重试'
       this.setError(errorMsg)
-      this.logger.error(errorMsg)
+      this.logger.error(`推荐试卷加载失败：${errorMsg}`)
       return Result.fail<RecommendedPaperItem[]>(-1, errorMsg)
     } finally {
       this.setLoading(false)
@@ -94,10 +100,9 @@ export class HomeViewModel extends BaseViewModel {
   }
 
   /**
-   * 组装推荐试卷：随机抽取 + 绑定派生展示态
+   * 把服务端试卷包装为带派生展示态的视图项
    */
-  private buildRecommendedPapers(): RecommendedPaperItem[] {
-    const papers: PaperInfo[] = getRandomPapers(MOCK_PAPERS, HomeViewModel.RECOMMEND_COUNT)
+  private buildRecommendedPapers(papers: PaperInfo[]): RecommendedPaperItem[] {
     const items: RecommendedPaperItem[] = []
     for (let i = 0; i < papers.length; i++) {
       const paper: PaperInfo = papers[i]

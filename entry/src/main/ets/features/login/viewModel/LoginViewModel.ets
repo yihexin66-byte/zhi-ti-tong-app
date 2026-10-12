@@ -24,8 +24,13 @@ export class LoginViewModel extends BaseViewModel {
   // 登录成功后的用户信息
   @Trace userInfo?: UserInfoModel
 
-  // 登录服务（6-1 基础设施的第一个业务消费者）
-  private loginService: LoginService = new LoginService()
+  // 登录服务（6-1 基础设施的第一个业务消费者；构造器注入，单测可塞假 Service）
+  private loginService: LoginService
+
+  constructor(service: LoginService = new LoginService()) {
+    super()
+    this.loginService = service
+  }
 
   /**
    * 提交登录或注册：真实请求打到后端，返回类型与 Mock 时代一致（View 层零改动）

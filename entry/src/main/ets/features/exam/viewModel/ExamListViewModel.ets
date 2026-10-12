@@ -11,14 +11,15 @@
  *   从路由参数读取科目名属于导航职责，由 View 层 onReady 取参后传入。
  *
  * 【数据来源】
- *   Mock 数据只来自 common/mock（MOCK_PAPERS），模块内不新造业务数据；
+ *   真实后端（PaperService → BaseService → httpClient）；
  *   按科目过滤复用 common/utils/PaperUtils 的 filterByCategory 纯函数。
+ *   Service 经构造器注入：日常无感知，单测可塞入假 Service。
  */
 import { BaseViewModel } from '@zhititong/common'
 import { Logger } from '@zhititong/common'
-import { MOCK_PAPERS } from '@zhititong/common'
 import { PaperInfo } from '@zhititong/common'
 import { filterByCategory } from '@zhititong/common'
+import { PaperService } from '../service/PaperService'
 
 @ObservedV2
 export class ExamListViewModel extends BaseViewModel {
@@ -28,18 +29,31 @@ export class ExamListViewModel extends BaseViewModel {
   // 按科目过滤后的考卷列表
   @Trace papers: PaperInfo[] = []
 
-  constructor() {
+  private paperService: PaperService
+
+  constructor(service: PaperService = new PaperService()) {
     super()
     this.logger = new Logger('[ExamListViewModel]')
+    this.paperService = service
   }
 
   /**
-   * 按科目加载考卷列表（当前走 Mock，项目 6 换网络请求时 View 层零改动）
+   * 按科目加载考卷列表（真实接口取全量后按科目过滤）
    */
-  loadByCategory(categoryName: string): void {
+  async loadByCategory(categoryName: string): Promise<void> {
     this.clearError()
     this.categoryName = categoryName
-    this.papers = filterByCategory(MOCK_PAPERS, categoryName)
-    this.logger.info(`科目「${categoryName}」加载考卷 ${this.papers.length} 套`)
+    this.setLoading(true)
+    try {
+      const all = await this.paperService.getPapers()
+      this.papers = filterByCategory(all, categoryName)
+      this.logger.info(`科目「${categoryName}」加载考卷 ${this.papers.length} 套`)
+    } catch (e) {
+      const errorMsg = (e as Error).message || '考卷列表加载失败，请稍后重试'
+      this.setError(errorMsg)
+      this.logger.error(`考卷列表加载失败：${errorMsg}`)
+    } finally {
+      this.setLoading(false)
+    }
   }
 }
