@@ -8,7 +8,9 @@
  */
 import { PaperInfo, SessionUserData, QuestionItem } from '@zhititong/common'
 import { LoginResult } from '../main/ets/features/login/service/LoginService'
-import { AttemptInfo, SubmitResult, ReviewDetail, ReviewQuestionDetail } from '../main/ets/features/exam/service/ExamService'
+import {
+  AttemptInfo, SubmitResult, ReviewDetail, ReviewQuestionDetail, AttemptRecord, CertificateItem
+} from '../main/ets/features/exam/service/ExamService'
 
 /** 夹具试卷共 8 套：HarmonyOS 6 套 + Java 程序设计 2 套 */
 export const FIXTURE_PAPERS: PaperInfo[] = [
@@ -141,7 +143,7 @@ export const FIXTURE_SUBMIT_RESULT: SubmitResult = {
   certificateGenerated: true
 }
 
-/** 逐题回顾：一错两对；第 3 题用户答 AD、正确答案 ABD（多选部分对不得分） */
+/** 逐题回顾：两对一错（第 3 题多选部分对不得分）；与 FIXTURE_SUBMIT_RESULT 保持一致 */
 export const FIXTURE_REVIEW: ReviewDetail = {
   attemptId: '5001',
   paperName: 'HarmonyOS 应用开发·3 题小卷',
@@ -159,7 +161,7 @@ export const FIXTURE_REVIEW: ReviewDetail = {
     {
       questionId: '2002', type: 'SINGLE',
       content: '下列哪个组件用于显示文本内容？',
-      correctAnswer: 'B', userAnswer: 'C', isCorrect: false, earnedScore: 0, maxScore: 10,
+      correctAnswer: 'B', userAnswer: 'B', isCorrect: true, earnedScore: 10, maxScore: 10,
       analysis: '',
       options: [
         { label: 'A', content: 'Image' }, { label: 'B', content: 'Text' },
@@ -181,3 +183,42 @@ export const FIXTURE_REVIEW: ReviewDetail = {
 
 /** 走查用的单题夹具（回顾页着色断言） */
 export const FIXTURE_REVIEW_MULTI: ReviewQuestionDetail = FIXTURE_REVIEW.questions[2]
+
+// ==================== 考试记录 / 证书夹具 ====================
+
+/** 记录夹具单条工厂：id 与交卷方式按序变化，便于分页断言 */
+export function makeAttemptRecord(index: number): AttemptRecord {
+  const record: AttemptRecord = {
+    id: `700${index}`,
+    startTime: `2026-10-${index < 10 ? `0${index}` : index} 10:00:00`,
+    score: 60 + index,
+    passed: index % 2 === 0,
+    usedTime: 600 + index,
+    submitType: index % 3 === 0 ? 'TIMEOUT' : 'MANUAL',
+    paperId: '1001',
+    paperName: 'HarmonyOS 应用开发·3 题小卷'
+  }
+  return record
+}
+
+/** 记录夹具共 12 条：page=1&size=10 得 10 条，page=2 得 2 条 */
+export const FIXTURE_ATTEMPT_RECORDS: AttemptRecord[] = [
+  makeAttemptRecord(1), makeAttemptRecord(2), makeAttemptRecord(3), makeAttemptRecord(4),
+  makeAttemptRecord(5), makeAttemptRecord(6), makeAttemptRecord(7), makeAttemptRecord(8),
+  makeAttemptRecord(9), makeAttemptRecord(10), makeAttemptRecord(11), makeAttemptRecord(12)
+]
+
+/** 记录总数（分页壳 total 字段） */
+export const FIXTURE_ATTEMPT_TOTAL: number = FIXTURE_ATTEMPT_RECORDS.length
+
+/** 证书夹具：一张有效、一张已过期（英文枚举进、中文徽标出） */
+export const FIXTURE_CERTIFICATES: CertificateItem[] = [
+  {
+    id: '8001', certificateNo: 'CERT-20261007-000001', name: 'HarmonyOS 应用开发者基础认证',
+    issueDate: '2026-10-07', expiryDate: '2028-10-07', status: 'VALID'
+  },
+  {
+    id: '8002', certificateNo: 'CERT-20241007-000002', name: 'HarmonyOS 应用开发者高级认证',
+    issueDate: '2024-10-07', expiryDate: '2026-10-07', status: 'EXPIRED'
+  }
+]

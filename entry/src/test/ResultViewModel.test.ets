@@ -33,7 +33,7 @@ export default function resultViewModelTest() {
       await vm.loadResult('5001')
       expect(vm.result.answers.length).assertEqual(3)
       expect(vm.result.answers[0].correct).assertEqual(true)
-      expect(vm.result.answers[1].correct).assertEqual(false)
+      expect(vm.result.answers[2].correct).assertEqual(false)   // 第 3 题多选部分对不得分
       expect(vm.result.answers[0].answered).assertEqual(true)
     })
 

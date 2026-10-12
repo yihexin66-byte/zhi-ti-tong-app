@@ -11,6 +11,9 @@ import examDetailViewModelTest from './ExamDetailViewModel.test'
 import resultViewModelTest from './ResultViewModel.test'
 import mineViewModelTest from './MineViewModel.test'
 import backgroundMonitorTest from './BackgroundMonitor.test'
+import reviewViewModelTest from './ReviewViewModel.test'
+import attemptRecordViewModelTest from './AttemptRecordViewModel.test'
+import certificateViewModelTest from './CertificateViewModel.test'
 
 export default function testsuite() {
   localUnitTest();
@@ -26,4 +29,7 @@ export default function testsuite() {
   resultViewModelTest()
   mineViewModelTest()
   backgroundMonitorTest()
+  reviewViewModelTest()
+  attemptRecordViewModelTest()
+  certificateViewModelTest()
 }
