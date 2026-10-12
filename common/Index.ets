@@ -13,3 +13,9 @@ export { BackgroundMonitor } from './src/main/ets/models/BackgroundMonitor';
 export { CategoryGroup, getRandomPapers, groupByCategory, filterByCategory } from './src/main/ets/utils/PaperUtils';
 export { formatDuration } from './src/main/ets/utils/TimeUtils';
 export { ValidationResult, ValidationUtil } from './src/main/ets/utils/ValidationUtil';
+// 全局配置与网络层基础设施（6-1）
+export { AppConfig } from './src/main/ets/config/AppConfig';
+export { RequestConfig, HttpResult, Interceptor } from './src/main/ets/network/types';
+export { TokenProvider } from './src/main/ets/network/interceptors';
+export { httpClient, setTokenProvider } from './src/main/ets/network/http';
+export { BaseService, ApiResponse } from './src/main/ets/base/BaseService';
