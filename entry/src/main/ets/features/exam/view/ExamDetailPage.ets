@@ -1,13 +1,14 @@
 // 考试模式答题页（View 层）：展示试卷信息、题目内容及选项，支持上下题切换
 //
 // 【分层职责（View 层）】
-//   零业务判断：题号、选中态、题型文案全部来自 ExamDetailViewModel；
-//   事件只转发：选项点击 → vm.handleSingleSelect / vm.handleMultiSelect，
-//              切题 → vm.prevQuestion / vm.nextQuestion；
-//   导航留在本层：提交试卷 push 到根栈结果页。
+//   零业务判断：题号、选中态、题型文案、倒计时文本全部来自 ExamDetailViewModel；
+//   事件只转发：选项点击 → vm.selectOption，切题 → vm.prevQuestion / vm.nextQuestion；
+//   导航留在本层，且只有一个出口：@Monitor 盯着 finishedAttemptId 这盏灯，
+//   灯亮则 replacePathByName 跳结果页（用 replace 而非 push，交卷后不允许返回答题页）。
 import { CommonConstants } from '@zhititong/common'
 import { RouteConstants } from '@zhititong/common'
 import { OptionItem } from '@zhititong/common'
+import { formatCountdown } from '@zhititong/common'
 import { FontSetting, StateKeys } from '@zhititong/common'
 import { BackgroundMonitor } from '@zhititong/common'
 import { Logger } from '@zhititong/common'
@@ -70,11 +71,18 @@ export struct ExamDetailPage {
     }
   }
 
+  // 页面销毁兜底：定时器必须清理，否则离开页面后仍会 tick
   aboutToDisappear(): void {
     const context = this.getUIContext().getHostContext()
     if (context !== undefined) {
       context.getApplicationContext().off('applicationStateChange', this.foregroundWatcher)
     }
+    this.viewModel.dispose()
+  }
+
+  // onWillDisappear 在导航切换（含被结果页 replace）时触发，是清理定时器的正位
+  onWillDisappear(): void {
+    this.viewModel.dispose()
   }
 
   /**
@@ -101,7 +109,7 @@ export struct ExamDetailPage {
       Column() {
         // ========== 顶部标题区 ==========
         Column() {
-          Text(this.viewModel.paper.paperName)
+          Text(this.viewModel.paperName)
             .fontSize(CommonConstants.FONT_BODY)
             .fontWeight(FontWeight.Bold)
             .fontColor(CommonConstants.COLOR_TEXT_MAIN)
@@ -122,7 +130,8 @@ export struct ExamDetailPage {
             .fontSize(CommonConstants.FONT_CAPTION)
             .fontColor(CommonConstants.COLOR_TEXT_SUB)
 
-            Text('29:59')
+            // 倒计时文本：服务端时间权威，前端每秒只做视觉递减
+            Text(formatCountdown(this.viewModel.remainingSeconds))
               .fontSize(CommonConstants.FONT_CAPTION)
               .fontColor(CommonConstants.COLOR_WARN)
               .fontWeight(FontWeight.Bold)
@@ -136,52 +145,68 @@ export struct ExamDetailPage {
 
         // ========== 中部题目区域 ==========
         Column() {
-          // 题型标签（换算逻辑在 ViewModel）
-          Text(this.viewModel.getTypeLabel(this.viewModel.questions[this.viewModel.currentIndex].type))
-            .fontSize(CommonConstants.FONT_CAPTION)
-            .fontColor(CommonConstants.COLOR_PRIMARY)
-            .borderWidth(1)
-            .borderColor(CommonConstants.COLOR_PRIMARY)
-            .borderRadius(4)
-            .borderStyle(BorderStyle.Solid)
-            .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-
-          // 题干内容
-          Text(this.viewModel.questions[this.viewModel.currentIndex].content)
-            .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
-            .fontColor(CommonConstants.COLOR_TEXT_MAIN)
-            .lineHeight(24)
-            .margin({ top: CommonConstants.SPACE_M })
-            .width('100%')
-
-          // 选项列表
-          ForEach(this.viewModel.questions[this.viewModel.currentIndex].options, (option: OptionItem) => {
-            Row() {
-              if (this.viewModel.isCurrentMulti()) {
-                Checkbox()
-                  .select(this.viewModel.isMultiChecked(option.label))
-                  .onChange((isChecked: boolean) => {
-                    // 事件只转发：toggle 语义由 ViewModel 处理（已选再点=取消）
-                    this.viewModel.handleMultiSelect(option.label)
-                  })
-              } else {
-                Radio({ value: option.label, group: `q_${this.viewModel.currentIndex}` })
-                  .checked(this.viewModel.isSingleChecked(option.label))
-                  .onChange((isChecked: boolean) => {
-                    if (isChecked) {
-                      // 事件只转发：单选替换语义由 ViewModel 处理
-                      this.viewModel.handleSingleSelect(option.label)
-                    }
-                  })
-              }
-              Text(`${option.label}. ${option.content}`)
-                .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
-                .fontColor(CommonConstants.COLOR_TEXT_MAIN)
-                .margin({ left: 8 })
+          if (this.viewModel.questions.length === 0) {
+            // 开考请求进行中：整卷尚未装载
+            Column() {
+              LoadingProgress()
+                .width(40)
+                .height(40)
+              Text(this.viewModel.errorMessage !== '' ? this.viewModel.errorMessage : '正在开考...')
+                .fontSize(CommonConstants.FONT_CAPTION)
+                .fontColor(CommonConstants.COLOR_TEXT_SUB)
+                .margin({ top: CommonConstants.SPACE_M })
             }
             .width('100%')
-            .margin({ top: CommonConstants.SPACE_M })
-          }, (option: OptionItem) => `${this.viewModel.currentIndex}_${option.label}`)
+            .justifyContent(FlexAlign.Center)
+          } else {
+            // 题型标签（换算逻辑在 ViewModel）
+            Text(this.viewModel.getTypeLabel(this.viewModel.questions[this.viewModel.currentIndex].type))
+              .fontSize(CommonConstants.FONT_CAPTION)
+              .fontColor(CommonConstants.COLOR_PRIMARY)
+              .borderWidth(1)
+              .borderColor(CommonConstants.COLOR_PRIMARY)
+              .borderRadius(4)
+              .borderStyle(BorderStyle.Solid)
+              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+
+            // 题干内容
+            Text(this.viewModel.questions[this.viewModel.currentIndex].content)
+              .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
+              .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+              .lineHeight(24)
+              .margin({ top: CommonConstants.SPACE_M })
+              .width('100%')
+
+            // 选项列表：单选/判断渲染 Radio，多选渲染 Checkbox；
+            // 选中态与点选语义统一由 ViewModel 的 answers 事实源派生
+            ForEach(this.viewModel.questions[this.viewModel.currentIndex].options, (option: OptionItem) => {
+              Row() {
+                if (this.viewModel.isCurrentMulti()) {
+                  Checkbox()
+                    .select(this.viewModel.isChecked(option.label))
+                    .onChange((isChecked: boolean) => {
+                      // 事件只转发：toggle 语义与实时保存由 ViewModel 处理
+                      this.viewModel.selectOption(option.label)
+                    })
+                } else {
+                  Radio({ value: option.label, group: `q_${this.viewModel.currentIndex}` })
+                    .checked(this.viewModel.isChecked(option.label))
+                    .onChange((isChecked: boolean) => {
+                      if (isChecked) {
+                        // 事件只转发：替换语义与实时保存由 ViewModel 处理
+                        this.viewModel.selectOption(option.label)
+                      }
+                    })
+                }
+                Text(`${option.label}. ${option.content}`)
+                  .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
+                  .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+                  .margin({ left: 8 })
+              }
+              .width('100%')
+              .margin({ top: CommonConstants.SPACE_M })
+            }, (option: OptionItem) => `${this.viewModel.currentIndex}_${option.label}`)
+          }
         }
         .width('100%')
         .padding(CommonConstants.SPACE_M)
@@ -198,7 +223,7 @@ export struct ExamDetailPage {
               .fontSize(CommonConstants.FONT_CAPTION)
               .enabled(this.viewModel.currentIndex > 0)
               .onClick(() => {
-                // 事件只转发：边界保护与切题重置在 ViewModel
+                // 事件只转发：边界保护在 ViewModel
                 this.viewModel.prevQuestion()
               })
 
@@ -210,7 +235,7 @@ export struct ExamDetailPage {
               .fontSize(CommonConstants.FONT_CAPTION)
               .enabled(this.viewModel.currentIndex < this.viewModel.questions.length - 1)
               .onClick(() => {
-                // 事件只转发：边界保护与切题重置在 ViewModel
+                // 事件只转发：边界保护在 ViewModel
                 this.viewModel.nextQuestion()
               })
 
@@ -240,11 +265,10 @@ export struct ExamDetailPage {
               colors: [[CommonConstants.GRADIENT_START, 0], [CommonConstants.GRADIENT_END, 1]]
             })
             .margin({ top: CommonConstants.SPACE_M })
+            .enabled(this.viewModel.questions.length > 0)
             .onClick(() => {
-              // 交卷先定格计数（stop 只停不清），再执行跳转
-              this.viewModel.submitPaper()
-              // 导航留在 View 层：push 到根栈结果页
-              this.pageStack.pushPathByName(RouteConstants.ANSWER_RESULT, null)
+              // 事件只转发：交卷与闸门在 ViewModel；跳转由 finishedAttemptId 信号驱动
+              this.viewModel.submit('MANUAL')
             })
         }
         .width('100%')
@@ -256,19 +280,19 @@ export struct ExamDetailPage {
     }
     .hideTitleBar(true)
     .onReady((context: NavDestinationContext) => {
-      // onReady 每次导航进入只触发一次：取路由参数装载对应试卷 + 开考监视
+      // onReady 每次导航进入只触发一次：取路由参数（paperId）开考/续考
       // SDK 中 NavPathInfo.param 声明为 unknown（ArkTS 禁止 unknown 类型），故按契约强转为 string
       const paperId = context.pathInfo?.param as string
-      this.viewModel.loadPaper(paperId === undefined ? '' : paperId)
-      this.viewModel.startExam()
+      this.viewModel.startExam(paperId === undefined ? '' : paperId)
     })
-    .onShown(() => {
-      // onShown 只在导航返回（pop 弹回）时触发，应用回前台不会触发：
-      // 交卷时监视器已 stop（monitoring=false），从结果页"重新刷题"pop 回本页
-      // 即视为重新开考——清零计数并重新进入监视
-      if (!this.monitor.monitoring) {
-        this.viewModel.startExam()
-      }
-    })
+  }
+
+  // 交卷完成信号灯：灯亮则携带场次号跳结果页
+  // replace 而非 push——交卷后不允许返回答题页
+  @Monitor('viewModel.finishedAttemptId')
+  onFinished(): void {
+    if (this.viewModel.finishedAttemptId !== '') {
+      this.pageStack.replacePathByName(RouteConstants.ANSWER_RESULT, this.viewModel.finishedAttemptId)
+    }
   }
 }

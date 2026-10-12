@@ -146,5 +146,11 @@ export struct AnswerResultPage {
       .padding(CommonConstants.SPACE_M)
     }
     .hideTitleBar(true)
+    .onReady((context: NavDestinationContext) => {
+      // onReady 取路由参数（交卷时点灯传下来的场次号），按场次号拉真实判分与答题卡
+      // SDK 中 NavPathInfo.param 声明为 unknown（ArkTS 禁止 unknown 类型），故按契约强转为 string
+      const attemptId = context.pathInfo?.param as string
+      this.viewModel.loadResult(attemptId === undefined ? '' : attemptId)
+    })
   }
 }

@@ -4,13 +4,17 @@ export interface OptionItem {
   content: string
 }
 
-// 题目：id 用 string 模拟雪花 ID；type 为 JUDGE | SINGLE | MULTI
+// 题目：id 用 string 承载雪花 ID；type 为 JUDGE | SINGLE | MULTI
+// myAnswer / isFlagged 是作答面字段：断点续考时后端随 questions 回传已答与存疑状态，
+// 答案（correctAnswer）在交卷前绝不下发——防作弊从契约层开始。
 export interface QuestionItem {
   id: string
   type: string
   content: string
   options: OptionItem[]
   score: number
+  myAnswer?: string
+  isFlagged?: boolean
 }
 
 // 试卷信息：字段名与契约对齐，项目 6 接入真实接口时只换数据源

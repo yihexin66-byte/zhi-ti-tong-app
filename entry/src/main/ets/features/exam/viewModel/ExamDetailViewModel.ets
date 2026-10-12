@@ -6,85 +6,135 @@
  *   2. 状态一律 @Trace，变更自动驱动 View 刷新
  *   3. 本文件零 UI 组件、零 @Builder、零导航栈操作（导航留在 View 层）
  *
- * 【职责边界】
- *   答题页全部业务状态集中于此：当前试卷、当前题号、单选选中项、多选选中项；
- *   按路由参数装载试卷、选项选择、切题重置为纯逻辑方法（单测覆盖）；
- *   提交后跳转结果页属于导航，由 View 层执行。
- *   切后台防作弊：开考/交卷时启停全局监视器（AppStorageV2 运行期状态）。
+ * 【四个设计决策（本任务沉淀）】
+ *   ① 时间权威在服务端：倒计时以 remainingSeconds 起跳，setInterval 只做"视觉每秒减一"
+ *   ② tick() 公开化：把"跳一秒"做成公开方法，单测可直调而不必等真实时钟
+ *   ③ 防重复交卷闸门：submitting 保证超时与手动同时到达也只交一次，失败放行
+ *   ④ finishedAttemptId 信号灯：交卷成功只点灯，导航由 View 侧 @Monitor 执行
  *
- * 【数据来源】
- *   Mock 数据只来自 common/mock（MOCK_PAPER / MOCK_QUESTIONS），模块内不新造业务数据。
+ * 【数据来源】真实后端（ExamService → BaseService → httpClient）。
  */
-import { BaseViewModel } from '@zhititong/common'
-import { Logger } from '@zhititong/common'
-import { MOCK_PAPER, MOCK_PAPERS, MOCK_QUESTIONS } from '@zhititong/common'
-import { PaperInfo, QuestionItem } from '@zhititong/common'
-import { BackgroundMonitor, StateKeys } from '@zhititong/common'
-import { AppStorageV2 } from '@kit.ArkUI'
+import { BaseViewModel, Logger, QuestionItem } from '@zhititong/common'
+import { ExamService } from '../service/ExamService'
 
 @ObservedV2
 export class ExamDetailViewModel extends BaseViewModel {
-  // 试卷信息（由路由参数按 id 从 Mock 卷库装载，@Trace 驱动标题区刷新）
-  @Trace paper: PaperInfo = MOCK_PAPER
+  // 场次号（开考后由服务端下发）
+  @Trace attemptId: string = ''
 
-  // 题目列表（Mock 只读数据，非响应式；当前 Mock 卷库共用同一套题干）
-  readonly questions: QuestionItem[] = MOCK_QUESTIONS
+  // 试卷名（标题区展示）
+  @Trace paperName: string = ''
+
+  // 整卷题目（作答面：含 myAnswer 回填、无 correctAnswer）
+  @Trace questions: QuestionItem[] = []
 
   // 当前题号（0 起）
   @Trace currentIndex: number = 0
 
-  // 单选/判断题选中项（切题重置）
-  @Trace selectedAnswer: string = ''
+  // 服务端驱动的剩余秒数
+  @Trace remainingSeconds: number = 0
 
-  // 多选题选中项集合（切题重置）
-  @Trace multiAnswers: string[] = []
+  /** 交卷完成信号：结果页导航的唯一出口（空串为未交卷） */
+  @Trace finishedAttemptId: string = ''
 
-  // 切后台监视器引用（运行期状态，全局单例）：懒连接，
-  // 既避免构造函数触碰 UI 状态 API（保证单测可实例化），也避免重复 connect
-  private monitorRef: BackgroundMonitor | undefined = undefined
+  /** 唯一事实源：questionId → 已选答案（MULTI 为无序标签串，如 "ACD"） */
+  private answers: Map<string, string> = new Map()
 
-  constructor() {
+  /** 防重复交卷闸门 */
+  private submitting: boolean = false
+
+  private timerId: number = -1
+
+  /** 本场切出应用次数（6-5 由切屏上报链路写入） */
+  private tabSwitchCount: number = 0
+
+  private examService: ExamService
+
+  constructor(service: ExamService = new ExamService()) {
     super()
     this.logger = new Logger('[ExamDetailViewModel]')
+    this.examService = service
   }
 
   /**
-   * 取全局监视器（首次访问时 connect 同一 key，拿到的是应用级单例）
+   * 开考（或续考）：装载场次、回填已答、以服务端时间起跳倒计时
    */
-  private getMonitor(): BackgroundMonitor {
-    if (this.monitorRef === undefined) {
-      this.monitorRef = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
-        () => new BackgroundMonitor())!
+  async startExam(paperId: string): Promise<void> {
+    this.clearError()
+    this.setLoading(true)
+    try {
+      const info = await this.examService.startExam(paperId)
+      this.attemptId = info.attemptId
+      this.paperName = info.paperName
+      this.questions = info.questions
+      this.remainingSeconds = info.remainingSeconds
+      this.currentIndex = 0
+      this.answers.clear()
+      for (const q of info.questions) {
+        if (q.myAnswer !== undefined && q.myAnswer !== null && q.myAnswer !== '') {
+          this.answers.set(q.id, q.myAnswer)   // 断点续考：答案回填
+        }
+      }
+      this.startTimer()
+      this.logger.info(`开考成功：${this.paperName}，共 ${this.questions.length} 题`)
+    } catch (e) {
+      const errorMsg = (e as Error).message
+      this.setError(errorMsg)
+      this.logger.error(`开考失败：${errorMsg}`)
+    } finally {
+      this.setLoading(false)
     }
-    return this.monitorRef
   }
 
   /**
-   * 按试卷 id 装载试卷（由答题页 NavDestination.onReady 调用）；
-   * 参数缺失或 id 未命中时保持默认 Mock 卷，不中断开考流程
+   * 起跳倒计时（重复调用安全：先清旧定时器）
    */
-  loadPaper(paperId: string): void {
-    if (paperId === '') {
-      return
+  private startTimer(): void {
+    this.dispose()
+    this.timerId = setInterval(() => this.tick(), 1000)
+  }
+
+  /**
+   * 每秒一跳：倒计时唯一推进口。做成公开方法，单测可直调而不必等真实时钟
+   */
+  tick(): void {
+    if (this.remainingSeconds > 0) {
+      this.remainingSeconds--
     }
-    const matched: PaperInfo[] = MOCK_PAPERS.filter((paper: PaperInfo) => paper.id === paperId)
-    if (matched.length > 0) {
-      this.paper = matched[0]
+    if (this.remainingSeconds === 0) {
+      this.submit('TIMEOUT')
     }
   }
 
   /**
-   * 开考：进入监视并清零计数（由答题页 NavDestination.onReady 调用）
+   * 交卷：MANUAL 手动 / TIMEOUT 超时 / TAB_SWITCH 切屏超限
    */
-  startExam(): void {
-    this.getMonitor().start()
+  async submit(submitType: string): Promise<void> {
+    if (this.submitting) {
+      return                         // 闸门：超时与手动同时到达也只交一次
+    }
+    this.submitting = true
+    try {
+      await this.examService.submit(this.attemptId, submitType, this.tabSwitchCount)
+      this.dispose()
+      this.finishedAttemptId = this.attemptId   // 点灯
+      this.logger.info(`交卷成功：${submitType}`)
+    } catch (e) {
+      this.submitting = false        // 失败放行，允许用户重试
+      const errorMsg = (e as Error).message
+      this.setError(errorMsg)
+      this.logger.error(`交卷失败：${errorMsg}`)
+    }
   }
 
   /**
-   * 交卷：停止监视（计数保留，供结果页读取；由交卷按钮调用）
+   * 清理定时器：页面销毁与交卷成功都要调
    */
-  submitPaper(): void {
-    this.getMonitor().stop()
+  dispose(): void {
+    if (this.timerId !== -1) {
+      clearInterval(this.timerId)
+      this.timerId = -1
+    }
   }
 
   /**
@@ -107,66 +157,99 @@ export class ExamDetailViewModel extends BaseViewModel {
    * 当前题是否多选题（View 依此决定渲染 Checkbox 还是 Radio）
    */
   isCurrentMulti(): boolean {
+    if (this.questions.length === 0) {
+      return false
+    }
     return this.questions[this.currentIndex].type === 'MULTI'
   }
 
   /**
-   * 单选题：选项被点选（单选替换语义：新选项直接覆盖旧选项）
+   * 选项是否处于选中态（单选与多选统一从 answers 事实源派生）
    */
-  handleSingleSelect(label: string): void {
-    this.selectedAnswer = label
-  }
-
-  /**
-   * 单选题：选项是否处于选中态
-   */
-  isSingleChecked(label: string): boolean {
-    return this.selectedAnswer === label
-  }
-
-  /**
-   * 多选题：切换选项选中态（toggle 语义：已选中再点一次=取消）
-   */
-  handleMultiSelect(label: string): void {
-    if (this.multiAnswers.indexOf(label) !== -1) {
-      this.multiAnswers = this.multiAnswers.filter((item: string) => item !== label)
-    } else {
-      this.multiAnswers = [...this.multiAnswers, label]
+  isChecked(label: string): boolean {
+    if (this.questions.length === 0) {
+      return false
     }
+    const current = this.answers.get(this.questions[this.currentIndex].id)
+    if (current === undefined) {
+      return false
+    }
+    return current.indexOf(label) !== -1
   }
 
   /**
-   * 多选题：选项是否处于选中态
+   * 点选选项：单选替换、多选 toggle；随后异步实时保存到服务端
    */
-  isMultiChecked(label: string): boolean {
-    return this.multiAnswers.indexOf(label) !== -1
+  selectOption(label: string): void {
+    if (this.questions.length === 0) {
+      return
+    }
+    const question = this.questions[this.currentIndex]
+    let next: string
+    if (question.type === 'MULTI') {
+      const labels = this.sortedLabels(this.answers.get(question.id) ?? '')
+      const index = labels.indexOf(label)
+      if (index !== -1) {
+        labels.splice(index, 1)      // 已选再点=取消
+      } else {
+        labels.push(label)
+      }
+      next = labels.sort().join('')  // 契约口径：多选为升序无分隔标签串（ACD）
+    } else {
+      next = label                   // 单选/判断：替换语义
+    }
+    this.answers.set(question.id, next)
+    this.questions = [...this.questions]   // V2 响应式：整体替换触发刷新
+    this.persistAnswer(question.id, next)
   }
 
   /**
-   * 上一题（含边界保护）；切题后单选与多选选中态全部清空
+   * 实时保存单题答案（失败仅记日志：不阻塞作答，下次点选会重发）
+   */
+  private persistAnswer(questionId: string, answer: string): void {
+    if (this.attemptId === '') {
+      return
+    }
+    this.examService.saveAnswer(this.attemptId, questionId, answer)
+      .catch((e: Error) => this.logger.warn(`答案保存失败：${e.message}`))
+  }
+
+  /**
+   * 把 "ACD" 还原为标签数组（空串 → 空数组）
+   */
+  private sortedLabels(answer: string): string[] {
+    if (answer === '') {
+      return []
+    }
+    return answer.split('')
+  }
+
+  /**
+   * 当前题已作答（供答题卡/存疑面板与摘要使用）
+   */
+  isAnswered(index: number): boolean {
+    if (index < 0 || index >= this.questions.length) {
+      return false
+    }
+    const answer = this.answers.get(this.questions[index].id)
+    return answer !== undefined && answer !== ''
+  }
+
+  /**
+   * 上一题（含边界保护）
    */
   prevQuestion(): void {
     if (this.currentIndex > 0) {
       this.currentIndex--
-      this.resetSelections()
     }
   }
 
   /**
-   * 下一题（含边界保护）；切题后单选与多选选中态全部清空
+   * 下一题（含边界保护）
    */
   nextQuestion(): void {
     if (this.currentIndex < this.questions.length - 1) {
       this.currentIndex++
-      this.resetSelections()
     }
-  }
-
-  /**
-   * 切题重置：清空单选与多选选中态（纯逻辑，单测覆盖）
-   */
-  private resetSelections(): void {
-    this.selectedAnswer = ''
-    this.multiAnswers = []
   }
 }

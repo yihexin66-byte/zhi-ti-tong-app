@@ -66,9 +66,16 @@ struct ExamPaperRow {
 
       // ===== 下行：已考次数 + 成绩 =====
       Row() {
-        Text(`已考 ${this.paper.attemptCount}/${this.paper.maxAttempts} 次`)
-          .fontSize(CommonConstants.FONT_CAPTION)
-          .fontColor(CommonConstants.COLOR_TEXT_SUB)
+        // 契约语义：maxAttempts 为 0 是"不限次数"的哨兵值，不能原样渲染成 "已考 2/0 次"
+        if (this.paper.maxAttempts > 0) {
+          Text(`已考 ${this.paper.attemptCount}/${this.paper.maxAttempts} 次`)
+            .fontSize(CommonConstants.FONT_CAPTION)
+            .fontColor(CommonConstants.COLOR_TEXT_SUB)
+        } else {
+          Text(`已考 ${this.paper.attemptCount} 次 · 不限次数`)
+            .fontSize(CommonConstants.FONT_CAPTION)
+            .fontColor(CommonConstants.COLOR_TEXT_SUB)
+        }
 
         // 条件渲染：考过显示最好成绩，否则显示"未考"
         if (this.paper.bestScore > 0) {
