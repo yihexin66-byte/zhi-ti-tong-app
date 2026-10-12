@@ -17,7 +17,9 @@ class SwitchLedger {
 
 /** 等一小段真实时间，让 tick 里"点火即忘"的异步交卷跑完 */
 function sleep(ms: number): Promise<void> {
-  return new Promise<void>((resolve: () => void) => setTimeout(resolve, ms))
+  return new Promise<void>((resolve: () => void) => {
+    setTimeout(resolve, ms)
+  })
 }
 
 /** 切屏上报夹具：超限即裁决强制交卷 */
