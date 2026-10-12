@@ -5,8 +5,8 @@
 //   全部来自 ResultViewModel，View 只取值渲染（无三元业务判断）；
 //   导航留在本层："重新刷题" pop 弹回答题页。
 import { CommonConstants } from '@zhititong/common'
+import { RouteConstants } from '@zhititong/common'
 import { AnswerItem } from '@zhititong/common'
-import { Logger } from '@zhititong/common'
 import { AnswerCell } from './AnswerCell'
 import { ResultViewModel } from '../viewModel/ResultViewModel'
 
@@ -14,15 +14,15 @@ import { ResultViewModel } from '../viewModel/ResultViewModel'
 const FONT_SCORE: number = 48
 const FONT_SMALL: number = 12
 
-// 工程日志口径：文件顶层 const，标签取文件主体名
-const logger: Logger = new Logger('AnswerResultPage')
-
 @ComponentV2
 export struct AnswerResultPage {
   @Consumer('pageStack') pageStack: NavPathStack = new NavPathStack()
 
   // 页面所有状态都在 ViewModel 上（@Local 持有实例）
   @Local viewModel: ResultViewModel = new ResultViewModel()
+
+  // 本场场次号（onReady 取参后留存，供"查看逐题解析"带参跳转）
+  @Local attemptId: string = ''
 
   build() {
     NavDestination() {
@@ -109,8 +109,8 @@ export struct AnswerResultPage {
 
         // ========== 底部按钮组行 ==========
         Row({ space: CommonConstants.SPACE_M }) {
-          // 查看回顾：白底主色字
-          Button('查看回顾')
+          // 查看逐题解析：带场次号 push 到根栈回顾页
+          Button('查看逐题解析')
             .type(ButtonType.Normal)
             .layoutWeight(1)
             .height(CommonConstants.BTN_HEIGHT)
@@ -118,8 +118,8 @@ export struct AnswerResultPage {
             .fontColor(CommonConstants.COLOR_PRIMARY)
             .fontSize(CommonConstants.FONT_BODY)
             .onClick(() => {
-              // 项目 6 预留的占位实现：本次只换日志出口，不动按钮交互
-              logger.info('查看回顾')
+              // 导航留在 View 层：携带本场场次号进入逐题回顾
+              this.pageStack.pushPathByName(RouteConstants.REVIEW, this.attemptId)
             })
 
           // 重新刷题：渐变主按钮
@@ -150,7 +150,8 @@ export struct AnswerResultPage {
       // onReady 取路由参数（交卷时点灯传下来的场次号），按场次号拉真实判分与答题卡
       // SDK 中 NavPathInfo.param 声明为 unknown（ArkTS 禁止 unknown 类型），故按契约强转为 string
       const attemptId = context.pathInfo?.param as string
-      this.viewModel.loadResult(attemptId === undefined ? '' : attemptId)
+      this.attemptId = attemptId === undefined ? '' : attemptId
+      this.viewModel.loadResult(this.attemptId)
     })
   }
 }

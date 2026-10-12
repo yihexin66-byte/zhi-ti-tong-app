@@ -12,6 +12,7 @@ export { FontSetting, FONT_LEVELS, FontLevel } from './src/main/ets/models/FontS
 export { BackgroundMonitor } from './src/main/ets/models/BackgroundMonitor';
 export { CategoryGroup, getRandomPapers, groupByCategory, filterByCategory } from './src/main/ets/utils/PaperUtils';
 export { formatDuration, formatCountdown } from './src/main/ets/utils/TimeUtils';
+export { questionTypeLabel, submitTypeLabel } from './src/main/ets/utils/ExamUtils';
 export { ValidationResult, ValidationUtil } from './src/main/ets/utils/ValidationUtil';
 // 全局配置与网络层基础设施（6-1）
 export { AppConfig } from './src/main/ets/config/AppConfig';

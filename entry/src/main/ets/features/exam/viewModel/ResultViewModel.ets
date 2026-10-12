@@ -13,7 +13,7 @@
  *
  * 【数据来源】真实后端（ExamService → BaseService → httpClient）。
  */
-import { BaseViewModel, Result, CommonConstants, Logger } from '@zhititong/common'
+import { BaseViewModel, Result, CommonConstants, Logger, submitTypeLabel } from '@zhititong/common'
 import { AnswerItem, ExamResult } from '@zhititong/common'
 import { formatDuration } from '@zhititong/common'
 import { BackgroundMonitor, StateKeys } from '@zhititong/common'
@@ -100,10 +100,10 @@ export class ResultViewModel extends BaseViewModel {
   }
 
   /**
-   * 说明行文案：及格线 · 用时 · 交卷方式（时间格式化在本层完成）
+   * 说明行文案：及格线 · 用时 · 交卷方式（时间格式化与三态换算在本层完成）
    */
   getSummaryText(): string {
-    const submitType = this.result.submitType === 'TIMEOUT' ? '超时自动交卷' : '手动交卷'
+    const submitType = submitTypeLabel(this.result.submitType)
     return `及格线 ${this.result.passScore} 分 · 用时 ${formatDuration(this.result.usedTime)} · ${submitType}`
   }
 

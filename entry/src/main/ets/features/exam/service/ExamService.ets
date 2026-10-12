@@ -50,6 +50,36 @@ export interface ReviewDetail {
   questions: ReviewQuestionDetail[]
 }
 
+/** 考试记录·单条（契约 3.6） */
+export interface AttemptRecord {
+  id: string
+  startTime: string
+  score: number
+  passed: boolean
+  usedTime: number
+  submitType: string
+  paperId: string
+  paperName: string
+}
+
+/** 考试记录·分页壳（契约 3.6） */
+export interface AttemptPage {
+  records: AttemptRecord[]
+  total: number
+  page: number
+  size: number
+}
+
+/** 我的证书·单张（契约 §四）：状态为英文枚举 VALID / EXPIRED */
+export interface CertificateItem {
+  id: string
+  certificateNo: string
+  name: string
+  issueDate: string
+  expiryDate: string
+  status: string
+}
+
 // ---- 请求体接口：ArkTS 不允许"无名分"的对象字面量（arkts-no-untyped-obj-literals） ----
 
 export interface StartExamRequest {
@@ -122,5 +152,16 @@ export class ExamService extends BaseService {
   /** 按场次号取逐题回顾（结果页答题卡与回顾页共用；未交卷时后端返回 400） */
   getFullReview(attemptId: string): Promise<ReviewDetail> {
     return this.getJson<ReviewDetail>(`/api/exam/attempts/${attemptId}/review`)
+  }
+
+  /** 考试记录（分页） */
+  getAttempts(page: number, size: number): Promise<AttemptPage> {
+    return this.getJson<AttemptPage>('/api/exam/attempts',
+      { 'page': `${page}`, 'size': `${size}` })
+  }
+
+  /** 我的证书列表（后端直接返回数组） */
+  getCertificates(): Promise<CertificateItem[]> {
+    return this.getJson<CertificateItem[]>('/api/exam/certificates')
   }
 }

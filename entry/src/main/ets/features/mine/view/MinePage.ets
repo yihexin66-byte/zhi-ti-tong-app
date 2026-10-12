@@ -13,17 +13,21 @@
  *   Navigation(mineStack) 自持子栈 + MineRouter 域内路由注册（预留）。
  */
 import { CommonConstants } from '@zhititong/common'
-import { FontSetting, FONT_LEVELS, FontLevel, StateKeys, SessionManager, SessionUser } from '@zhititong/common'
+import { FontSetting, FONT_LEVELS, FontLevel, StateKeys, SessionManager, SessionUser, RouteConstants } from '@zhititong/common'
 import { PersistenceV2 } from '@kit.ArkUI'
 import { MineViewModel } from '../viewModel/MineViewModel'
+import { AttemptRecordPage } from './AttemptRecordPage'
+import { CertificatePage } from './CertificatePage'
 
 // ===== 设置条目子组件 =====
 // 作用：渲染一行设置项，左边是标题，右边是箭头 >
-// 注意：没有 export，只能在 MinePage.ets 内部使用；纯静态展示，不建模
+// 注意：没有 export，只能在 MinePage.ets 内部使用；点击回调由父组件注入（导航不在子组件里做）
 @ComponentV2
 struct SettingItem {
   // @Param：父组件传入的标题文字
   @Param title: string = ''
+  // @Event：点击回调（父组件决定跳哪里；未传则此行仅作展示）
+  @Event onTap: () => void = () => {}
 
   build() {
     // 一行：标题 + 空白 + 箭头
@@ -42,6 +46,9 @@ struct SettingItem {
     .height(CommonConstants.BTN_HEIGHT)                  // 行高 50
     .padding({ left: CommonConstants.SPACE_M, right: CommonConstants.SPACE_M }) // 左右内边距 16
     .alignItems(VerticalAlign.Center)                    // 垂直居中
+    .onClick(() => {
+      this.onTap()
+    })
   }
 }
 
@@ -89,9 +96,14 @@ export struct MinePage {
     return FONT_LEVELS[this.getLevelIndex()].label
   }
 
-  // Mine 域内路由注册（预留）
+  // Mine 域内路由注册：记录与证书都是"我的"域内页面，push 后保留底部 Tab
   @Builder
   MineRouter(name: string, param: Object) {
+    if (name === RouteConstants.ATTEMPT_RECORD) {
+      AttemptRecordPage()
+    } else if (name === RouteConstants.CERTIFICATE) {
+      CertificatePage()
+    }
   }
 
   // 进入页面时触发用户信息加载（View 只负责触发，业务在 ViewModel 内完成）
@@ -160,10 +172,21 @@ export struct MinePage {
           .alignItems(VerticalAlign.Center)
 
           // 调用 SettingItem 子组件，传入不同标题
-          // 每个条目一行，点击后跳转到对应功能页（后续实现）
+          // 做题记录 / 我的证书：项目4 留到现在的死占位，本任务正式接活（走 mineStack）
           SettingItem({ title: '我的收藏' })
-          SettingItem({ title: '做题记录' })
+          SettingItem({
+            title: '做题记录',
+            onTap: () => {
+              this.mineStack.pushPathByName(RouteConstants.ATTEMPT_RECORD, null)
+            }
+          })
           SettingItem({ title: '错题本' })
+          SettingItem({
+            title: '我的证书',
+            onTap: () => {
+              this.mineStack.pushPathByName(RouteConstants.CERTIFICATE, null)
+            }
+          })
           SettingItem({ title: '关于我们' })
         }
         .width('100%')
