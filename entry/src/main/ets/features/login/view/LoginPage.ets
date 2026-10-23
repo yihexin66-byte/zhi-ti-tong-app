@@ -2,6 +2,8 @@
 import { CommonConstants } from '@zhititong/common'
 import { RouteConstants } from '@zhititong/common'
 import { SessionManager, SessionUser } from '@zhititong/common'
+import { Result } from '@zhititong/common'
+import { LoginResponseModel } from '../model/LoginResponseModel'
 import { LoginViewModel } from '../viewModel/LoginViewModel'
 
 @ComponentV2
@@ -26,12 +28,23 @@ export struct LoginPage {
   }
 
   /**
-   * 进入主页的唯一出口：两个钩子一前一后合围"灯比页面早亮/晚亮"两种时序
+   * 进入主页的唯一出口：三个入口共用，靠"栈顶已是主页"这道闸门保证幂等
+   *   - aboutToAppear：冷启动 loadFromDisk 先于页面构建时点亮（灯比页面早）
+   *   - @Monitor     ：登录成功让灯在页面存续期间亮起（灯比页面晚）
+   *   - submit 返回后：灯本来就亮着（从主页按返回键退回登录页再登录），
+   *                    @Monitor 见不到 false→true 的跳变，只能由这条兜底
+   * @Monitor 只对"变化"敏感，对"已经是 true"无感——这就是回退后登录进不去主页的根因。
    */
   private tryEnterMain(): void {
-    if (this.session.loggedIn) {
-      this.pageStack.replacePathByName(RouteConstants.MAIN, null)
+    if (!this.session.loggedIn) {
+      return
     }
+    const names: string[] = this.pageStack.getAllPathName()
+    const top: string = names.length > 0 ? names[names.length - 1] : ''
+    if (top === RouteConstants.MAIN) {
+      return
+    }
+    this.pageStack.replacePathByName(RouteConstants.MAIN, null)
   }
 
   build() {
@@ -101,9 +114,14 @@ export struct LoginPage {
             .fontSize(CommonConstants.FONT_SUBTITLE)
             .enabled(!this.viewModel.loading)
             .onClick(async () => {
-              // View 不做任何判断，只转发事件、消费结果
-              // 进入主页不再在这里手写跳转：登录成功后 session.loggedIn 亮灯，@Monitor 统一分流
-              await this.viewModel.submit()
+              // View 不做业务判断，只转发事件、消费结果。
+              // 正常路径：submit 内部 SessionManager.save() 点亮 session.loggedIn，
+              //          @Monitor 应声跳转；这里这一句是给"灯本来就亮着"的场景兜底。
+              // tryEnterMain 幂等，不会和 @Monitor 抢着压两遍主页。
+              const result: Result<LoginResponseModel> = await this.viewModel.submit()
+              if (result.ok) {
+                this.tryEnterMain()
+              }
             })
 
           // 登录/注册切换
