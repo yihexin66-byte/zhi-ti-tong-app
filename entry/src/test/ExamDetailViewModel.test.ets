@@ -1,5 +1,7 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { MockKit, when, ArgumentMatchers } from '@ohos/hamock'
+import { AppStorageV2 } from '@kit.ArkUI'
+import { BackgroundMonitor, StateKeys } from '@zhititong/common'
 import { ExamDetailViewModel } from '../main/ets/features/exam/viewModel/ExamDetailViewModel'
 import { AttemptInfo, ExamService, TabSwitchResult } from '../main/ets/features/exam/service/ExamService'
 import { FIXTURE_ATTEMPT, FIXTURE_ATTEMPT_RESUMED, FIXTURE_SUBMIT_RESULT } from './Fixtures'
@@ -149,6 +151,24 @@ export default function examDetailViewModelTest() {
       await vm.submit('TIMEOUT')                 // 应被闸门挡下
       expect(ledger.types.length).assertEqual(1)
       expect(ledger.types[0]).assertEqual('MANUAL')
+      vm.dispose()
+    })
+
+    // ===== 回归：防切屏监视器必须由场次生命周期启停（曾因漏调而全程空转） =====
+    it('should_start_monitor_on_exam_and_stop_on_submit', 0, async () => {
+      const monitor = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
+        () => new BackgroundMonitor())!
+      monitor.stop()
+      monitor.count = 0
+      const vm = new ExamDetailViewModel(createMockedService(FIXTURE_ATTEMPT))
+      await vm.startExam('1001')
+      expect(monitor.monitoring).assertTrue()    // 开考成功即进入监视
+      expect(monitor.count).assertEqual(0)       // 新场次从 0 起算
+      monitor.increase()
+      expect(monitor.count).assertEqual(1)
+      await vm.submit('MANUAL')
+      expect(monitor.monitoring).assertFalse()   // 交卷后不再累计
+      expect(monitor.count).assertEqual(1)       // stop 只停不清，结果页仍可读
       vm.dispose()
     })
 

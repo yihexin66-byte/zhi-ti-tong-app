@@ -11,11 +11,15 @@
  *   ② tick() 公开化：把"跳一秒"做成公开方法，单测可直调而不必等真实时钟
  *   ③ 防重复交卷闸门：submitting 保证超时与手动同时到达也只交一次，失败放行
  *   ④ finishedAttemptId 信号灯：交卷成功只点灯，导航由 View 侧 @Monitor 执行
+ *   ⑤ 防切后台：开考成功启监视、交卷开始停监视（AppStorageV2 全局运行期状态）
  *
  * 【数据来源】真实后端（ExamService → BaseService → httpClient）。
  */
 import { BaseViewModel, Logger, QuestionItem } from '@zhititong/common'
+import { BackgroundMonitor, StateKeys } from '@zhititong/common'
+import { AppStorageV2 } from '@kit.ArkUI'
 import { ExamService } from '../service/ExamService'
+
 @ObservedV2
 export class ExamDetailViewModel extends BaseViewModel {
   // 场次号（开考后由服务端下发）
@@ -58,10 +62,25 @@ export class ExamDetailViewModel extends BaseViewModel {
 
   private examService: ExamService
 
+  // 切后台监视器引用（运行期状态，全局单例）：懒连接，
+  // 既避免构造函数触碰 UI 状态 API（保证单测可实例化），也避免重复 connect
+  private monitorRef: BackgroundMonitor | undefined = undefined
+
   constructor(service: ExamService = new ExamService()) {
     super()
     this.logger = new Logger('[ExamDetailViewModel]')
     this.examService = service
+  }
+
+  /**
+   * 取全局监视器（首次访问时 connect 同一 key，拿到的是应用级单例）
+   */
+  private getMonitor(): BackgroundMonitor {
+    if (this.monitorRef === undefined) {
+      this.monitorRef = AppStorageV2.connect(BackgroundMonitor, StateKeys.BACKGROUND_MONITOR,
+        () => new BackgroundMonitor())!
+    }
+    return this.monitorRef
   }
 
   /**
@@ -88,6 +107,7 @@ export class ExamDetailViewModel extends BaseViewModel {
         }
       }
       this.startTimer()
+      this.getMonitor().start()   // 防作弊：开考成功即进入监视并清零本场计数
       this.logger.info(`开考成功：${this.paperName}，共 ${this.questions.length} 题`)
     } catch (e) {
       const errorMsg = (e as Error).message
@@ -128,6 +148,7 @@ export class ExamDetailViewModel extends BaseViewModel {
     this.submitting = true
     try {
       await this.examService.submit(this.attemptId, submitType, this.tabSwitchCount)
+      this.getMonitor().stop()         // 防作弊：交卷成功后停止计数（计数保留给结果页）
       this.dispose()
       this.finishedAttemptId = this.attemptId   // 点灯
       this.logger.info(`交卷成功：${submitType}`)
