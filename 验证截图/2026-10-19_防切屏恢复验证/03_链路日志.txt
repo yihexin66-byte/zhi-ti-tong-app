@@ -1,0 +1,18 @@
+防切屏恢复 · 真机链路日志（hdc hilog，2026-10-19）
+
+10-19 11:18:05.314  I A00000/EntryAbility: 切后台上报完成：monitoring=true, count=1
+10-19 11:18:05.412  I A00000/[ExamDetailViewModel]: 切屏上报：本地 1 次，服务端记账 1 次，强制交卷=false
+10-19 11:18:19.131  I A00000/EntryAbility: 切后台上报完成：monitoring=true, count=2
+10-19 11:18:19.490  I A00000/[ExamDetailViewModel]: 切屏上报：本地 2 次，服务端记账 2 次，强制交卷=false
+10-19 11:18:24.104  I A00000/EntryAbility: 切后台上报完成：monitoring=true, count=3
+10-19 11:18:24.272  I A00000/[ExamDetailViewModel]: 切屏上报：本地 3 次，服务端记账 3 次，强制交卷=false
+10-19 11:18:31.900  I A00000/EntryAbility: 切后台上报完成：monitoring=true, count=4
+10-19 11:18:31.963  I A00000/[ExamDetailViewModel]: 切屏上报：本地 4 次，服务端记账 4 次，强制交卷=true
+10-19 11:18:32.079  I A00000/[ExamDetailViewModel]: 交卷成功：TAB_SWITCH
+
+结论：
+- 开考后 monitoring=true，每次 Home 键切后台 count 逐次 +1（1→4）
+- 3/3 未触发强制交卷；4/3 服务端返回 shouldAutoSubmit=true
+- 客户端按裁决自动交卷（submitType=TAB_SWITCH）
+- 回前台 Toast：“检测到切出应用，已记录 N 次，请专心作答”
+- 结果页显示“切屏超限自动交卷”与“本场切出应用 4 次”，答题卡 35 格完整展示
