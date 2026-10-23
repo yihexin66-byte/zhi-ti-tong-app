@@ -20,6 +20,10 @@ import { BackgroundMonitor, StateKeys } from '@zhititong/common'
 import { AppStorageV2 } from '@kit.ArkUI'
 import { ExamService, ReviewDetail, SubmitResult } from '../service/ExamService'
 
+// 结果页答题卡：六列、格子 40vp（与 AnswerCell 尺寸一致）
+const CARD_COLUMNS: number = 6
+const CARD_CELL_SIZE: number = 40
+
 @ObservedV2
 export class ResultViewModel extends BaseViewModel {
   // 交卷结果（loadResult 装载；首帧保留空壳保证不崩）
@@ -122,6 +126,15 @@ export class ResultViewModel extends BaseViewModel {
       return CommonConstants.COLOR_TEXT_HINT
     }
     return answer.correct ? CommonConstants.COLOR_SUCCESS : CommonConstants.COLOR_ERROR
+  }
+
+  /**
+   * 答题卡网格高度（vp）：按题量算行数（六列一行）。
+   * 写死单行高度只会显示前 6 格，真实试卷 30~35 题会被切掉后面 5 行。
+   */
+  getCardGridHeight(): number {
+    const rows: number = Math.ceil(this.result.answers.length / CARD_COLUMNS)
+    return (rows > 0 ? rows : 1) * CARD_CELL_SIZE
   }
 
   /**

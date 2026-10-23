@@ -84,7 +84,7 @@ export struct AnswerResultPage {
               .fontColor(CommonConstants.COLOR_TEXT_MAIN)
               .width('100%')
 
-            // 六列一行，格子高度固定（单行展示，无需滚动）
+            // 六列一行，行数随题量伸缩（真实卷 35 题 = 6 行，不能写死单行高）
             Grid() {
               ForEach(this.viewModel.result.answers, (answer: AnswerItem, index: number) => {
                 GridItem() {
@@ -97,7 +97,7 @@ export struct AnswerResultPage {
             }
             .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr')
             .width('100%')
-            .height(44)
+            .height(this.viewModel.getCardGridHeight())
           }
           .width('100%')
           .backgroundColor(Color.White)
