@@ -65,6 +65,9 @@ export struct ExamDetailPage {
   // 答题卡半模态面板开合
   @Local showCard: boolean = false
 
+  // 题目区滚动控制器：切题时回到题首，避免沿用上一题的滚动偏移
+  private questionScroller: Scroller = new Scroller()
+
   // 应用前后台监听（aboutToAppear 注册 / aboutToDisappear 注销）
   private foregroundWatcher: ForegroundWatcher = new ForegroundWatcher()
 
@@ -161,6 +164,7 @@ export struct ExamDetailPage {
             .onClick(() => {
               // 事件只转发：跳题（含边界保护）在 ViewModel
               this.viewModel.jumpTo(index)
+              this.questionScroller.scrollEdge(Edge.Top)
               this.showCard = false
             })
           }
@@ -240,73 +244,86 @@ export struct ExamDetailPage {
         .padding(CommonConstants.SPACE_M)
 
         // ========== 中部题目区域 ==========
-        Column() {
-          if (this.viewModel.questions.length === 0) {
-            // 开考请求进行中：整卷尚未装载
-            Column() {
-              LoadingProgress()
-                .width(40)
-                .height(40)
-              Text(this.viewModel.errorMessage !== '' ? this.viewModel.errorMessage : '正在开考...')
-                .fontSize(CommonConstants.FONT_CAPTION)
-                .fontColor(CommonConstants.COLOR_TEXT_SUB)
-                .margin({ top: CommonConstants.SPACE_M })
-            }
-            .width('100%')
-            .justifyContent(FlexAlign.Center)
-          } else {
-            // 题型标签（换算逻辑在 ViewModel）
-            Text(this.viewModel.getTypeLabel(this.viewModel.questions[this.viewModel.currentIndex].type))
-              .fontSize(CommonConstants.FONT_CAPTION)
-              .fontColor(CommonConstants.COLOR_PRIMARY)
-              .borderWidth(1)
-              .borderColor(CommonConstants.COLOR_PRIMARY)
-              .borderRadius(4)
-              .borderStyle(BorderStyle.Solid)
-              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-
-            // 题干内容
-            Text(this.viewModel.questions[this.viewModel.currentIndex].content)
-              .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
-              .fontColor(CommonConstants.COLOR_TEXT_MAIN)
-              .lineHeight(24)
-              .margin({ top: CommonConstants.SPACE_M })
-              .width('100%')
-
-            // 选项列表：单选/判断渲染 Radio，多选渲染 Checkbox；
-            // 选中态与点选语义统一由 ViewModel 的 answers 事实源派生
-            ForEach(this.viewModel.questions[this.viewModel.currentIndex].options, (option: OptionItem) => {
-              Row() {
-                if (this.viewModel.isCurrentMulti()) {
-                  Checkbox()
-                    .select(this.viewModel.isChecked(option.label))
-                    .onChange((isChecked: boolean) => {
-                      // 事件只转发：toggle 语义与实时保存由 ViewModel 处理
-                      this.viewModel.selectOption(option.label)
-                    })
-                } else {
-                  Radio({ value: option.label, group: `q_${this.viewModel.currentIndex}` })
-                    .checked(this.viewModel.isChecked(option.label))
-                    .onChange((isChecked: boolean) => {
-                      if (isChecked) {
-                        // 事件只转发：替换语义与实时保存由 ViewModel 处理
-                        this.viewModel.selectOption(option.label)
-                      }
-                    })
-                }
-                Text(`${option.label}. ${option.content}`)
-                  .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
-                  .fontColor(CommonConstants.COLOR_TEXT_MAIN)
-                  .margin({ left: 8 })
+        // 题干与选项可纵向滚动：长题/大字号下内容不被底部按钮区挤掉
+        Scroll(this.questionScroller) {
+          Column() {
+            if (this.viewModel.questions.length === 0) {
+              // 开考请求进行中：整卷尚未装载
+              Column() {
+                LoadingProgress()
+                  .width(40)
+                  .height(40)
+                Text(this.viewModel.errorMessage !== '' ? this.viewModel.errorMessage : '正在开考...')
+                  .fontSize(CommonConstants.FONT_CAPTION)
+                  .fontColor(CommonConstants.COLOR_TEXT_SUB)
+                  .margin({ top: CommonConstants.SPACE_M })
               }
               .width('100%')
-              .margin({ top: CommonConstants.SPACE_M })
-            }, (option: OptionItem) => `${this.viewModel.currentIndex}_${option.label}`)
+              .justifyContent(FlexAlign.Center)
+            } else {
+              // 题型标签（换算逻辑在 ViewModel）
+              Text(this.viewModel.getTypeLabel(this.viewModel.questions[this.viewModel.currentIndex].type))
+                .fontSize(CommonConstants.FONT_CAPTION)
+                .fontColor(CommonConstants.COLOR_PRIMARY)
+                .borderWidth(1)
+                .borderColor(CommonConstants.COLOR_PRIMARY)
+                .borderRadius(4)
+                .borderStyle(BorderStyle.Solid)
+                .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+
+              // 题干内容
+              Text(this.viewModel.questions[this.viewModel.currentIndex].content)
+                .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
+                .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+                .lineHeight(24)
+                .margin({ top: CommonConstants.SPACE_M })
+                .width('100%')
+
+              // 选项列表：单选/判断渲染 Radio，多选渲染 Checkbox；
+              // 选中态与点选语义统一由 ViewModel 的 answers 事实源派生
+              ForEach(this.viewModel.questions[this.viewModel.currentIndex].options, (option: OptionItem) => {
+                Row() {
+                  if (this.viewModel.isCurrentMulti()) {
+                    Checkbox()
+                      .select(this.viewModel.isChecked(option.label))
+                      .onChange((isChecked: boolean) => {
+                        // 事件只转发：toggle 语义与实时保存由 ViewModel 处理
+                        this.viewModel.selectOption(option.label)
+                      })
+                  } else {
+                    Radio({ value: option.label, group: `q_${this.viewModel.currentIndex}` })
+                      .checked(this.viewModel.isChecked(option.label))
+                      .onChange((isChecked: boolean) => {
+                        if (isChecked) {
+                          // 事件只转发：替换语义与实时保存由 ViewModel 处理
+                          this.viewModel.selectOption(option.label)
+                        }
+                      })
+                  }
+                  // 占满剩余宽度：长选项自动换行，不再被屏幕右缘裁掉
+                  Text(`${option.label}. ${option.content}`)
+                    .fontSize(CommonConstants.FONT_BODY + this.font.fontSize)
+                    .fontColor(CommonConstants.COLOR_TEXT_MAIN)
+                    .lineHeight(24)
+                    .wordBreak(WordBreak.BREAK_WORD)
+                    .layoutWeight(1)
+                    .margin({ left: 8 })
+                }
+                .width('100%')
+                .alignItems(VerticalAlign.Top)
+                .margin({ top: CommonConstants.SPACE_M })
+              }, (option: OptionItem) => `${this.viewModel.currentIndex}_${option.label}`)
+            }
           }
+          .width('100%')
+          .padding(CommonConstants.SPACE_M)
         }
         .width('100%')
-        .padding(CommonConstants.SPACE_M)
         .layoutWeight(1)
+        // Scroll 默认居中放置内容；题目区要求从顶部开始排版
+        .align(Alignment.Top)
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.Spring)
 
         // ========== 底部操作区 ==========
         Column() {
@@ -321,6 +338,7 @@ export struct ExamDetailPage {
               .onClick(() => {
                 // 事件只转发：边界保护在 ViewModel
                 this.viewModel.prevQuestion()
+                this.questionScroller.scrollEdge(Edge.Top)
               })
 
             Button('下一题')
@@ -333,6 +351,7 @@ export struct ExamDetailPage {
               .onClick(() => {
                 // 事件只转发：边界保护在 ViewModel
                 this.viewModel.nextQuestion()
+                this.questionScroller.scrollEdge(Edge.Top)
               })
 
             // 标记存疑：已存疑时按钮换文案与强调色（状态由 ViewModel 判定）
